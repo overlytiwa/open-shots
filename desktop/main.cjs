@@ -70,7 +70,7 @@ app.whenReady().then(async () => {
         const headers = new Headers(response.headers)
         headers.set(
           'Content-Security-Policy',
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://images.unsplash.com; media-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://images.unsplash.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'",
+          "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://images.unsplash.com; media-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://images.unsplash.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'",
         )
         return new Response(response.body, { status: response.status, headers })
       })

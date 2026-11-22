@@ -1,0 +1,24 @@
+OpenShot third-party notices
+
+Device models and derived front-view frames keep their individual CC BY 4.0 or CC0 licenses. Full author/source/license and modification records:
+https://github.com/overlytiwa/open-shots/blob/main/docs/device-models.md
+https://github.com/overlytiwa/open-shots/blob/main/docs/device-fallbacks.md
+
+Mediabunny and @mediabunny/aac-encoder 1.66.2
+Copyright Vanilagy, Mozilla Public License 2.0
+Original source and covered source files:
+https://github.com/Vanilagy/mediabunny/tree/v1.66.2
+https://www.npmjs.com/package/mediabunny/v/1.66.2
+https://www.npmjs.com/package/@mediabunny/aac-encoder/v/1.66.2
+The packages are used without source modifications. Full MPL license files are included here.
+
+The AAC extension includes an unmodified FFmpeg AAC encoder compiled to WebAssembly, under LGPL 2.1 or later. The upstream extension source contains the C bridge and the README describes the FFmpeg configuration and Emscripten build. FFmpeg source: https://git.ffmpeg.org/ffmpeg.git
+Full LGPL text and upstream FFmpeg license notice are included in ffmpeg/.
+
+Three.js r180, Copyright Three.js authors, MIT
+https://github.com/mrdoob/three.js/tree/r180
+Three.js license included as three-MIT.txt
+Its bundled Basis Universal transcoder and Meshoptimizer decoder retain their upstream license headers.
+
+Additional packages and licenses:
+https://github.com/overlytiwa/open-shots/blob/main/docs/third-party.md

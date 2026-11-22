@@ -35,6 +35,18 @@ export function interpolate(
   return out
 }
 export function animatedLayer(l: Layer, p: Project, time: number): Layer {
+  if (l.beats?.length) {
+    const out = { ...l }
+    for (const beat of [...l.beats].sort((a, b) => a.time - b.time)) {
+      const distance = Math.abs(time - beat.time),
+        half = Math.max(0.05, beat.duration / 2)
+      if (distance >= half) continue
+      const weight = ease(1 - distance / half, p.animation.easing)
+      for (const key of ['x', 'y', 'scale', 'rotate', 'rotateX', 'rotateY'] as const)
+        out[key] += (beat.pose[key] - l[key]) * weight
+    }
+    return out
+  }
   if (l.keyframes.length) return { ...l, ...interpolate(l.keyframes, time, p.animation.easing) }
   const progress = Math.max(0, Math.min(1, time / p.animation.duration)),
     t = ease(progress, p.animation.easing),
@@ -124,4 +136,49 @@ export function animatedLayer(l: Layer, p: Project, time: number): Layer {
       break
   }
   return s
+}
+
+/** Interpolate presentation changes without writing intermediate values into project history. */
+export function transitionProject(from: Project, to: Project, t: number): Project {
+  const blend = (a: number, b: number) => a + (b - a) * t
+  const color = (a: string, b: string) => {
+    if (!/^#[\da-f]{6}$/i.test(a) || !/^#[\da-f]{6}$/i.test(b)) return b
+    return (
+      '#' +
+      [1, 3, 5]
+        .map((i) =>
+          Math.round(blend(parseInt(a.slice(i, i + 2), 16), parseInt(b.slice(i, i + 2), 16)))
+            .toString(16)
+            .padStart(2, '0'),
+        )
+        .join('')
+    )
+  }
+  return {
+    ...to,
+    background: {
+      ...to.background,
+      colors: to.background.colors.map((c, i) => color(from.background.colors[i] || c, c)),
+    },
+    layers: to.layers.map((l) => {
+      const old = from.layers.find((v) => v.id === l.id)
+      if (!old) return l
+      const next = { ...l }
+      for (const key of [
+        'x',
+        'y',
+        'width',
+        'height',
+        'scale',
+        'rotate',
+        'rotateX',
+        'rotateY',
+        'opacity',
+        'radius',
+        'shadow',
+      ] as const)
+        next[key] = blend(old[key], l[key])
+      return next
+    }),
+  }
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react'
 import {
   Camera,
+  Info,
   ChevronDown,
   Undo2,
   Redo2,
@@ -46,7 +47,10 @@ import {
 } from 'lucide-react'
 import { newProject, layer, uid, type Project, type Layer } from './core/model'
 import { media, render, hitLayer, corners } from './core/renderer'
-import { animatedLayer } from './core/animation'
+import { animatedLayer, transitionProject } from './core/animation'
+import { MockupPanel, LayoutPanel, BeatTimeline, fitMedia, poses } from './components/Studio'
+import { deviceCredits } from './core/devices'
+import { creditImage } from './core/credits'
 import {
   saveProject,
   loadProject,
@@ -86,10 +90,18 @@ export default function App() {
     [preview, setPreview] = useState(false),
     [zoom, setZoom] = useState(100),
     [performanceMode, setPerformanceMode] = useState(false),
-    [light, setLight] = useState(false),
+    [light, setLight] = useState(true),
     [draggingFile, setDraggingFile] = useState(false),
     [mobilePanel, setMobilePanel] = useState(false),
     [layerList, setLayerList] = useState(false)
+  const [exportError, setExportError] = useState('')
+  const [advanced, setAdvanced] = useState<Panel | ''>(''),
+    [editingBeat, setEditingBeat] = useState(''),
+    [showCredits, setShowCredits] = useState(false),
+    [showMedia, setShowMedia] = useState(false),
+    [library, setLibrary] = useState<
+      { src: string; mediaType: Layer['mediaType']; name: string }[]
+    >([])
   const [stageSize, setStageSize] = useState({ w: 1000, h: 800 }),
     [format, setFormat] = useState<Format>('png'),
     [scale, setScale] = useState(1),
@@ -114,6 +126,7 @@ export default function App() {
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     [historyVersion, refreshHistory] = useState(0),
     [mediaVersion, refreshMedia] = useState(0)
+  const visualProject = useRef(p)
   const current = p.layers.find((l) => l.id === selected)
   const notify = useCallback((s: string) => {
     setToast(s)
@@ -268,7 +281,12 @@ export default function App() {
     return () => {
       alive = false
     }
-  }, [p.layers.map((l) => l.src).join('|'), p.background.src, p.watermark.src, notify])
+  }, [
+    p.layers.map((l) => l.src + '|' + l.device + '|' + l.model + '|' + l.displayOnly).join('|'),
+    p.background.src,
+    p.watermark.src,
+    notify,
+  ])
   useEffect(() => {
     if (!board.current) return
     const ro = new ResizeObserver((entries) => {
@@ -284,13 +302,53 @@ export default function App() {
       if (!c) return
       const ratio = performanceMode ? Math.min(1, 900 / p.width) : Math.min(1, 1800 / p.width)
       c.setTransform(ratio, 0, 0, ratio, 0, 0)
-      render(c, p, t, media, performanceMode)
+      render(c, playingRef.current ? p : visualProject.current, t, media, performanceMode)
     },
     [p, performanceMode],
   )
   useEffect(() => {
+    if (playing) {
+      visualProject.current = p
+      draw(time)
+      return
+    }
+    const from = visualProject.current,
+      begin = performance.now(),
+      reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+    let handle = 0
+    const animate = (now: number) => {
+      const t =
+        reduce || from.width !== p.width || from.height !== p.height
+          ? 1
+          : Math.min(1, (now - begin) / 320)
+      visualProject.current = transitionProject(from, p, 1 - Math.pow(1 - t, 3))
+      draw(time)
+      if (t < 1) handle = requestAnimationFrame(animate)
+    }
+    handle = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(handle)
+  }, [p, draw, mediaVersion, playing])
+  useEffect(() => {
     draw(time)
-  }, [draw, time, mediaVersion])
+  }, [time, draw])
+  useEffect(() => {
+    const clips = p.layers.filter((l) => !l.hidden && l.kind === 'media' && l.mediaType === 'video')
+    for (const [src, item] of media.cache) {
+      if (!(item instanceof HTMLVideoElement)) continue
+      const match = clips.filter((l) => l.src === src)
+      item.muted = !match.some((l) => !l.muted)
+      item.playbackRate = match[0]?.speed || 1
+      if (playing && match.length) void item.play().catch(() => {})
+      else item.pause()
+    }
+    return () => {
+      for (const item of media.cache.values()) if (item instanceof HTMLVideoElement) item.pause()
+    }
+  }, [
+    playing,
+    mediaVersion,
+    p.layers.map((l) => l.src + '|' + l.muted + '|' + l.speed + '|' + l.hidden).join(';'),
+  ])
   useEffect(() => {
     if (!playing) return
     let frame = 0,
@@ -341,8 +399,15 @@ export default function App() {
     const key = (e: KeyboardEvent) => {
       const input =
         e.target instanceof HTMLElement &&
-        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)
-      if (input) return
+        (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) ||
+          !!e.target.closest('[role=slider]'))
+      if (
+        input ||
+        ((e.key === ' ' || e.key === 'Enter') &&
+          e.target instanceof HTMLElement &&
+          e.target.closest('button'))
+      )
+        return
       if (dialog) {
         if (e.key === 'Escape' && progress === null) setDialog('')
         return
@@ -375,6 +440,9 @@ export default function App() {
         setDialog('')
         setMenu(false)
         setMobilePanel(false)
+        setAdvanced('')
+        setShowMedia(false)
+        setShowCredits(false)
       } else if (e.key === '?') {
         setDialog('shortcuts')
       } else if (
@@ -422,9 +490,13 @@ export default function App() {
           if (
             !target &&
             projectRef.current.layers.length === 1 &&
-            projectRef.current.layers[0].src === './sample.svg'
+            !projectRef.current.layers[0].src
           )
             target = projectRef.current.layers[0].id
+          setLibrary((items) => [
+            ...items.filter((i) => i.src !== src),
+            { src, mediaType, name: file.name },
+          ])
           const values = {
             src,
             mediaType,
@@ -435,7 +507,11 @@ export default function App() {
           if (target) {
             change((p) => ({
               ...p,
-              layers: p.layers.map((l) => (l.id === target ? { ...l, ...values } : l)),
+              layers: p.layers.map((l) =>
+                l.id === target
+                  ? { ...l, ...values, ...(l.device === 'none' ? fitMedia(p, w / h) : {}) }
+                  : l,
+              ),
             }))
             setSelected(target)
             target = undefined
@@ -443,11 +519,7 @@ export default function App() {
             const a = layer({
               ...values,
               device: 'none',
-              height: 65,
-              width: Math.min(
-                80,
-                (((65 * projectRef.current.height) / projectRef.current.width) * w) / h,
-              ),
+              ...fitMedia(projectRef.current, w / h),
             })
             change((p) => ({ ...p, layers: [...p.layers, a] }))
             setSelected(a.id)
@@ -490,6 +562,9 @@ export default function App() {
       const project = validateProject(JSON.parse(await file.text()))
       change(() => project)
       setSelected(project.layers.at(-1)?.id || '')
+      setTimeline(
+        project.layers.some((l) => l.mediaType === 'video' || l.beats.length || l.keyframes.length),
+      )
       setTime(0)
       setPlaying(false)
       notify('Project opened')
@@ -503,7 +578,7 @@ export default function App() {
     null,
   )
   function pointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-    if (progress !== null || preview) return
+    if (progress !== null || preview || (e.target as HTMLElement).closest('button')) return
     const rect = e.currentTarget.getBoundingClientRect(),
       x = ((e.clientX - rect.left) / rect.width) * p.width,
       y = ((e.clientY - rect.top) / rect.height) * p.height,
@@ -548,6 +623,7 @@ export default function App() {
     if (progress !== null) return
     setPlaying(false)
     setProgress(0)
+    setExportError('')
     abort.current = new AbortController()
     try {
       const blob = await exportProject(p, {
@@ -558,11 +634,20 @@ export default function App() {
         signal: abort.current.signal,
         progress: setProgress,
       })
-      download(blob, `${p.name || 'Untitled'}.${format === 'jpeg' ? 'jpg' : format}`)
+      const credits = deviceCredits(p.layers)
+      download(
+        await creditImage(blob, format, credits),
+        `${p.name || 'Untitled'}.${format === 'jpeg' ? 'jpg' : format}`,
+      )
+      if (credits)
+        download(new Blob([credits], { type: 'text/plain' }), `${p.name || 'Untitled'}-credits.txt`)
       notify('Export saved')
       setDialog('')
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') notify((e as Error).message)
+      if ((e as Error).name !== 'AbortError') {
+        setExportError((e as Error).message)
+        notify((e as Error).message)
+      }
     } finally {
       setProgress(null)
       abort.current = null
@@ -579,7 +664,10 @@ export default function App() {
         time,
         progress: () => {},
       })
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': await creditImage(blob, 'png', deviceCredits(p.layers)) }),
+      ])
+      if (deviceCredits(p.layers)) setShowCredits(true)
       notify('Image copied')
     } catch (e) {
       notify('Clipboard is unavailable here. Use Export to save the image')
@@ -602,9 +690,7 @@ export default function App() {
   }
   const ratio = performanceMode ? Math.min(1, 900 / p.width) : Math.min(1, 1800 / p.width),
     viewScale =
-      (Math.min((stageSize.w - (preview ? 40 : 90)) / p.width, (stageSize.h - 100) / p.height) *
-        zoom) /
-      100,
+      (Math.min((stageSize.w - 24) / p.width, (stageSize.h - 24) / p.height) * zoom) / 100,
     displayW = Math.max(64, p.width * viewScale),
     displayH = Math.max(64, p.height * viewScale),
     selection =
@@ -619,7 +705,12 @@ export default function App() {
   const isMotion = ['mp4', 'webm', 'gif'].includes(format)
   return (
     <div
-      className={'app ' + (light ? 'light ' : '') + (preview ? 'preview-mode' : '')}
+      className={
+        'app studio ' +
+        (light ? 'light ' : '') +
+        (timeline ? 'has-timeline ' : '') +
+        (preview ? 'preview-mode' : '')
+      }
       onDragOver={(e) => {
         if (Array.from(e.dataTransfer.types).includes('Files')) {
           e.preventDefault()
@@ -653,250 +744,213 @@ export default function App() {
         accept=".openshot,.json"
         onChange={(e) => void openProject(e)}
       />
-      <header className="topbar">
-        <div className="brand">
-          <img src="./icon.png" alt="" />
-          <span>OpenShot</span>
-        </div>
-        <div className="project-menu">
-          <button
-            className="project-button"
-            aria-label="Project menu"
-            onClick={() => setMenu(!menu)}
-          >
-            {p.name}
-            <ChevronDown size={14} />
+      <header className="studio-header">
+        <div className="studio-brand">
+          <img src="./icon.png" alt="OpenShot" />{' '}
+          <div className="project-menu">
+            <button
+              className="project-button"
+              aria-label="Project menu"
+              onClick={() => setMenu(!menu)}
+            >
+              {p.name}
+              <ChevronDown size={14} />
+            </button>
+            <span className="save-status">
+              <Check size={12} />
+              {saved}
+            </span>
+            {menu && (
+              <>
+                <button
+                  className="menu-dismiss"
+                  aria-label="Close project menu"
+                  onClick={() => setMenu(false)}
+                />
+                <div className="dropdown">
+                  <label className="field">
+                    <span>Project name</span>
+                    <input
+                      value={p.name}
+                      onChange={(e) => change((p) => ({ ...p, name: e.target.value }))}
+                    />
+                  </label>
+                  <button
+                    onClick={() => {
+                      setDialog('new')
+                      setMenu(false)
+                    }}
+                  >
+                    <Plus size={16} /> New project
+                  </button>
+                  <button
+                    onClick={() => {
+                      projectInput.current?.click()
+                      setMenu(false)
+                    }}
+                  >
+                    <FolderOpen size={16} /> Open project <kbd>Ctrl O</kbd>
+                  </button>
+                  <button
+                    onClick={() => {
+                      saveFile()
+                      setMenu(false)
+                    }}
+                  >
+                    <Save size={16} /> Save project <kbd>Ctrl S</kbd>
+                  </button>
+                  <button
+                    onClick={() => {
+                      void share()
+                      setMenu(false)
+                    }}
+                  >
+                    <Link size={16} /> Share project
+                  </button>
+                  {window.openshot && (
+                    <button
+                      onClick={() => {
+                        setMenu(false)
+                        void window
+                          .openshot!.capture()
+                          .then(async (src) => {
+                            if (src) {
+                              const bytes = Uint8Array.from(
+                                atob(src.slice(src.indexOf(',') + 1)),
+                                (c) => c.charCodeAt(0),
+                              )
+                              await importFiles([
+                                new File([bytes], 'Screen capture.png', { type: 'image/png' }),
+                              ])
+                            }
+                          })
+                          .catch((e) => notify((e as Error).message))
+                      }}
+                    >
+                      <Camera size={16} />
+                      Capture screen
+                    </button>
+                  )}
+                  <hr />
+                  <button
+                    onClick={() => {
+                      setDialog('shortcuts')
+                      setMenu(false)
+                    }}
+                  >
+                    <Keyboard size={16} /> Shortcuts
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLight(!light)
+                      setMenu(false)
+                    }}
+                  >
+                    {light ? <Moon size={16} /> : <Sun size={16} />} {light ? 'Dark' : 'Light'}{' '}
+                    appearance
+                  </button>
+                  <label className="toggle">
+                    <span>Performance mode</span>
+                    <input
+                      type="checkbox"
+                      checked={performanceMode}
+                      onChange={(e) => setPerformanceMode(e.target.checked)}
+                    />
+                  </label>
+                </div>
+              </>
+            )}
+          </div>
+          <button className="templates-button" onClick={() => setAdvanced('templates')}>
+            <LayoutTemplate size={17} />
+            Templates
           </button>
-          <span className="save-status">
-            <Check size={12} />
-            {saved}
-          </span>
-          {menu && (
-            <>
-              <button
-                className="menu-dismiss"
-                aria-label="Close project menu"
-                onClick={() => setMenu(false)}
-              />
-              <div className="dropdown">
-                <label className="field">
-                  <span>Project name</span>
-                  <input
-                    value={p.name}
-                    onChange={(e) => change((p) => ({ ...p, name: e.target.value }))}
-                  />
-                </label>
-                <button
-                  onClick={() => {
-                    setDialog('new')
-                    setMenu(false)
-                  }}
-                >
-                  <Plus size={16} /> New project
-                </button>
-                <button
-                  onClick={() => {
-                    projectInput.current?.click()
-                    setMenu(false)
-                  }}
-                >
-                  <FolderOpen size={16} /> Open project <kbd>Ctrl O</kbd>
-                </button>
-                <button
-                  onClick={() => {
-                    saveFile()
-                    setMenu(false)
-                  }}
-                >
-                  <Save size={16} /> Save project <kbd>Ctrl S</kbd>
-                </button>
-                <button
-                  onClick={() => {
-                    void share()
-                    setMenu(false)
-                  }}
-                >
-                  <Link size={16} /> Share project
-                </button>
-                <hr />
-                <button
-                  onClick={() => {
-                    setDialog('shortcuts')
-                    setMenu(false)
-                  }}
-                >
-                  <Keyboard size={16} /> Shortcuts
-                </button>
-                <button
-                  onClick={() => {
-                    setLight(!light)
-                    setMenu(false)
-                  }}
-                >
-                  {light ? <Moon size={16} /> : <Sun size={16} />} {light ? 'Dark' : 'Light'}{' '}
-                  appearance
-                </button>
-                <label className="toggle">
-                  <span>Performance mode</span>
-                  <input
-                    type="checkbox"
-                    checked={performanceMode}
-                    onChange={(e) => setPerformanceMode(e.target.checked)}
-                  />
-                </label>
-              </div>
-            </>
-          )}
         </div>
-        <div className="history-buttons">
+        <div className="studio-history">
           <button
-            title="Undo (Ctrl Z)"
             aria-label="Undo"
+            title="Undo"
             disabled={!hist.current.past.length}
             onClick={undo}
           >
             <Undo2 size={17} />
           </button>
           <button
-            title="Redo (Ctrl Shift Z)"
             aria-label="Redo"
+            title="Redo"
             disabled={!hist.current.future.length}
             onClick={redo}
           >
             <Redo2 size={17} />
           </button>
-        </div>
-        <div className="top-actions">
-          <a
-            className="icon-button github-link"
-            href={repo}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="GitHub repository"
-          >
-            <Github size={18} />
-          </a>
-          <button className="desktop-button" onClick={() => setDialog('desktop')}>
-            <MonitorDown size={16} />
-            <span>Get desktop app</span>
-          </button>
           <button
-            className="secondary share-button"
-            onClick={() => void share()}
-            disabled={shareBusy}
+            aria-label="Keyboard shortcuts"
+            title="Shortcuts"
+            onClick={() => setDialog('shortcuts')}
           >
-            <Link size={16} />
-            <span>Share</span>
+            <Keyboard size={17} />
           </button>
-          <button className="primary" onClick={() => setDialog('export')}>
-            <Download size={16} />
-            <span>Export</span>
+          <button className="start-over" onClick={() => setDialog('new')}>
+            Start over
+          </button>
+          <button aria-label="Preview canvas" title="Preview" onClick={() => setPreview(!preview)}>
+            <Maximize2 size={17} />
+          </button>
+        </div>
+        <div className="studio-export">
+          <button
+            className="download-desktop"
+            title="Get desktop app"
+            aria-label="Get desktop app"
+            onClick={() => setDialog('desktop')}
+          >
+            <MonitorDown size={18} />
+          </button>
+          <button className="export-pill" onClick={() => setDialog('export')}>
+            <Download size={17} />
+            Export{' '}
+            <small>
+              {scale}× {format.toUpperCase()}
+            </small>
+          </button>
+          <button aria-label="Copy image" title="Copy image" onClick={() => void copyImage()}>
+            <Copy size={16} />
           </button>
         </div>
       </header>
-      <div className="editor">
-        <nav className="tool-rail" aria-label="Editor tools">
-          {panels.map(({ id, icon: Icon, label }) => (
-            <button
-              key={id}
-              className={panel === id ? 'active' : ''}
-              onClick={() => {
-                setPanel(id)
-                setMobilePanel(true)
-              }}
-              aria-label={panelNames[id]}
-              aria-pressed={panel === id}
-            >
-              <Icon size={21} strokeWidth={1.6} />
-              <span>{label}</span>
-            </button>
-          ))}
+      <div className="studio-editor">
+        <aside
+          className={'studio-panel left-panel ' + (mobilePanel ? 'mobile-open' : '')}
+          aria-label="Mockup and frame settings"
+        >
           <button
-            className="help-button"
-            aria-label="Keyboard shortcuts"
-            onClick={() => setDialog('shortcuts')}
+            className="mobile-close"
+            aria-label="Close settings"
+            onClick={() => setMobilePanel(false)}
           >
-            <Keyboard size={20} />
+            <X size={18} />
           </button>
-        </nav>
-        <aside className={'inspector ' + (mobilePanel ? 'mobile-open' : '')}>
-          <div className="panel-header">
-            <h2>{panelNames[panel]}</h2>
+          <MockupPanel
+            p={p}
+            current={current}
+            change={change}
+            update={update}
+            upload={upload}
+            openAdvanced={setAdvanced}
+            onCredits={() => setShowCredits(true)}
+          />
+          <div className="studio-panel-footer">
+            <span>{saved}</span>
             <button
-              className="mobile-close"
-              aria-label="Close tools"
-              onClick={() => setMobilePanel(false)}
+              title="About & model credits"
+              aria-label="About & model credits"
+              onClick={() => setShowCredits(true)}
             >
-              <X size={18} />
+              <Info size={13} />
             </button>
-            {panel === 'background' && <span className="count-label">24 gradients</span>}
-          </div>
-          <div className="panel-scroll">
-            <Inspector
-              panel={panel}
-              p={p}
-              selected={selected}
-              setSelected={setSelected}
-              change={change}
-              update={update}
-              upload={upload}
-              time={time}
-              notify={notify}
-            />
-          </div>
-          <div className="inspector-footer">
-            <Lock size={13} />
-            <span>Files stay on your device</span>
           </div>
         </aside>
-        <main className="workspace">
-          <div className="canvas-toolbar">
-            <div className="canvas-meta">
-              <span>Canvas</span>
-              <button
-                title="Change canvas size"
-                onClick={() => {
-                  setPanel('layout')
-                  setMobilePanel(true)
-                }}
-              >
-                {p.width} × {p.height}
-                <ChevronDown size={13} />
-              </button>
-            </div>
-            <div className="canvas-actions">
-              <button className="text-button" onClick={() => upload()}>
-                <Plus size={16} />
-                <span>Add media</span>
-              </button>
-              {window.openshot && (
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    void window.openshot!.capture().then(async (src) => {
-                      if (src) {
-                        const response = await fetch(src),
-                          blob = await response.blob()
-                        await importFiles([
-                          new File([blob], 'Screen capture.png', { type: 'image/png' }),
-                        ])
-                      }
-                    })
-                  }
-                >
-                  <Camera size={16} />
-                  <span>Capture</span>
-                </button>
-              )}
-              <button
-                title="Preview"
-                aria-label="Preview canvas"
-                onClick={() => setPreview(!preview)}
-              >
-                <Maximize2 size={17} />
-              </button>
-            </div>
-          </div>
+        <main className="studio-center">
           <div className="workboard" ref={board}>
             <div className="stage-area">
               <div
@@ -912,7 +966,7 @@ export default function App() {
                 onPointerCancel={() => {
                   drag.current = null
                 }}
-                onDoubleClick={() => current?.kind === 'media' && upload(current.id)}
+                onDoubleClick={() => (current?.src ? setShowMedia(true) : upload(current?.id))}
               >
                 <canvas
                   ref={canvas}
@@ -920,12 +974,12 @@ export default function App() {
                   height={Math.round(p.height * ratio)}
                   aria-label="Mockup canvas"
                 />
-                {current && !preview && progress === null && (
+                {current?.src && !preview && progress === null && (
                   <svg className="selection-overlay" viewBox={`0 0 ${p.width} ${p.height}`}>
                     <polygon
                       points={selection.map((v) => `${v.x},${v.y}`).join(' ')}
                       fill="none"
-                      stroke="#d4e8ff"
+                      stroke="#ffffff"
                       strokeWidth={1 / viewScale}
                       strokeOpacity=".65"
                     />
@@ -936,235 +990,360 @@ export default function App() {
                         y={pt.y - 3 / viewScale}
                         width={6 / viewScale}
                         height={6 / viewScale}
-                        fill="#ffffff"
-                        stroke="#7a90b5"
-                        strokeWidth={1 / viewScale}
+                        fill="#fff"
                         data-resize={i === 2 ? 'true' : 'false'}
-                        className={i === 2 ? 'resize-handle' : ''}
                       />
                     ))}
                   </svg>
                 )}
-                {!p.layers.length && (
-                  <button className="empty-canvas" onClick={() => upload()}>
-                    <Image size={40} strokeWidth={1} />
-                    <strong>Add a screenshot</strong>
-                    <span>Drop an image or video here, or click to choose</span>
+                {!p.layers.some((l) => l.src || l.kind !== 'media') && (
+                  <button className="studio-empty" onClick={() => upload(current?.id)}>
+                    <Image size={42} strokeWidth={1.2} />
+                    <strong>Drop your image or video</strong>
+                    <span>or click to choose a file</span>
+                    <small>Paste from your clipboard with Ctrl / ⌘ V</small>
                   </button>
                 )}
               </div>
-              {current && !preview && (
-                <div className="selection-tools">
-                  <span>{current.name}</span>
-                  <button title="Duplicate" aria-label="Duplicate layer" onClick={duplicate}>
-                    <Copy size={15} />
-                  </button>
-                  <button
-                    title="Bring forward"
-                    aria-label="Bring layer forward"
-                    onClick={() => reorder(1)}
-                  >
-                    <MoveUp size={15} />
-                  </button>
-                  <button
-                    title="Send backward"
-                    aria-label="Send layer backward"
-                    onClick={() => reorder(-1)}
-                  >
-                    <MoveDown size={15} />
-                  </button>
-                  <button title="Delete" aria-label="Delete layer" onClick={remove}>
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              )}
             </div>
           </div>
-          <div className="viewbar">
-            <button
-              className={'text-button ' + (timeline ? 'active' : '')}
-              onClick={() => setTimeline(!timeline)}
-            >
-              <Clapperboard size={16} />
-              <span>Timeline</span>
-              {timeline ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
-            </button>
-            <div className="zoom-control">
-              <button title="Fit canvas" onClick={() => setZoom(100)}>
-                {zoom}%
+          <div className="studio-bottom">
+            <div className="bottom-tools">
+              <button
+                aria-label="Open settings"
+                className="mobile-settings"
+                onClick={() => setMobilePanel(true)}
+              >
+                <SlidersHorizontal size={17} />
               </button>
-              <input
-                aria-label="Canvas zoom"
-                type="range"
-                min={30}
-                max={150}
-                value={zoom}
-                onChange={(e) => setZoom(+e.target.value)}
-              />
+              <button
+                aria-label="Media library"
+                title="Media"
+                onClick={() => setShowMedia(!showMedia)}
+              >
+                <Image size={17} />
+              </button>
+              <button
+                aria-label="Text and shapes"
+                title="Text & shapes"
+                onClick={() => setAdvanced('text')}
+              >
+                <Type size={17} />
+              </button>
+              <button aria-label="Layers" title="Layers" onClick={() => setAdvanced('layout')}>
+                <Layers size={17} />
+              </button>
             </div>
-            <span className="drop-hint">Drop or paste an image to start</span>
-            <button className="text-button layers-toggle" onClick={() => setLayerList(!layerList)}>
-              <Layers size={16} />
-              {p.layers.length} layers
-            </button>
-          </div>
-          {timeline && (
-            <div className="timeline">
-              <div className="transport">
+            {timeline ? (
+              <>
                 <button
-                  className="play-button"
-                  aria-label={playing ? 'Pause animation' : 'Play animation'}
+                  className="add-animation"
                   onClick={() => {
-                    if (time >= p.animation.duration) setTime(0)
-                    setPlaying(!playing)
+                    if (!current) return
+                    const at = time > 0 ? time : Math.min(5, p.animation.duration / 2),
+                      id = uid()
+                    update({
+                      beats: [
+                        ...current.beats,
+                        {
+                          id,
+                          time: at,
+                          duration: 1,
+                          pose: {
+                            x: current.x,
+                            y: current.y,
+                            scale: current.scale * 1.12,
+                            rotate: current.rotate,
+                            rotateX: current.rotateX,
+                            rotateY: current.rotateY,
+                          },
+                        },
+                      ],
+                    })
+                    setEditingBeat(id)
+                    setTime(at)
                   }}
                 >
-                  {playing ? <Pause size={17} /> : <Play size={17} />}
+                  <Plus size={17} />
+                  Add animation
                 </button>
-                <button aria-label="Restart animation" onClick={() => setTime(0)}>
-                  <RotateCcw size={15} />
-                </button>
-                <span>
-                  {time.toFixed(2)} <small>/ {p.animation.duration.toFixed(2)}s</small>
-                </span>
-                <label>
-                  Duration
-                  <input
-                    aria-label="Timeline duration"
-                    type="number"
-                    min={0.5}
-                    max={60}
-                    step={0.5}
-                    value={p.animation.duration}
-                    onChange={(e) =>
+                <div className="studio-transport">
+                  <button
+                    aria-label="Loop animation"
+                    aria-pressed={p.animation.loop}
+                    onClick={() =>
                       change((p) => ({
                         ...p,
-                        animation: {
-                          ...p.animation,
-                          duration: Math.max(0.5, Math.min(60, +e.target.value)),
-                        },
+                        animation: { ...p.animation, loop: !p.animation.loop },
                       }))
                     }
-                  />
-                  s
-                </label>
-              </div>
-              <input
-                aria-label="Animation playhead"
-                className="playhead"
-                type="range"
-                min={0}
-                max={p.animation.duration}
-                step={0.01}
-                value={time}
-                onChange={(e) => {
-                  setPlaying(false)
-                  setTime(+e.target.value)
-                }}
-              />
-              <div className="timeline-ruler">
-                <span>0s</span>
-                <span>{(p.animation.duration / 4).toFixed(1)}s</span>
-                <span>{(p.animation.duration / 2).toFixed(1)}s</span>
-                <span>{(p.animation.duration * 0.75).toFixed(1)}s</span>
-                <span>{p.animation.duration}s</span>
-              </div>
-              <div className="timeline-tracks">
-                {p.layers
-                  .filter((l) => !l.hidden)
-                  .map((l) => (
-                    <button
-                      className={'track ' + (l.id === selected ? 'selected' : '')}
-                      key={l.id}
-                      onClick={() => {
-                        setSelected(l.id)
-                        setPanel('motion')
-                      }}
-                    >
-                      <span>{l.name}</span>
-                      <div>
-                        {l.keyframes.length ? (
-                          l.keyframes.map((k) => (
-                            <i
-                              key={k.id}
-                              title={k.time + 's'}
-                              style={{ left: `${(k.time / p.animation.duration) * 100}%` }}
-                            />
-                          ))
-                        ) : (
-                          <small>
-                            {l.motion === 'none'
-                              ? l.mediaType === 'video'
-                                ? 'Video'
-                                : 'Still'
-                              : l.motion.replaceAll('-', ' ')}
-                          </small>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-          {layerList && (
-            <div className="layers-popover">
-              <div className="panel-header">
-                <h3>Layers</h3>
-                <button aria-label="Close layers" onClick={() => setLayerList(false)}>
+                  >
+                    <RotateCcw size={17} />
+                  </button>
+                  <button
+                    className="studio-play"
+                    aria-label={playing ? 'Pause animation' : 'Play animation'}
+                    onClick={() => {
+                      if (time >= p.animation.duration) setTime(0)
+                      setEditingBeat('')
+                      setPlaying(!playing)
+                    }}
+                  >
+                    {playing ? <Pause size={20} /> : <Play size={20} fill="currentColor" />}
+                  </button>
+                  <span>
+                    {time.toFixed(1)}
+                    <small> / {p.animation.duration.toFixed(1)}s</small>
+                  </span>
+                </div>
+                <button
+                  aria-label="Close timeline"
+                  onClick={() => {
+                    setTimeline(false)
+                    setPlaying(false)
+                    setTime(0)
+                    setEditingBeat('')
+                  }}
+                >
                   <X size={16} />
                 </button>
-              </div>
-              {[...p.layers].reverse().map((l) => (
-                <div className={'layer-row ' + (l.id === selected ? 'selected' : '')} key={l.id}>
-                  <button className="layer-select" onClick={() => setSelected(l.id)}>
-                    {l.kind === 'media' ? (
-                      <Image size={15} />
-                    ) : l.kind === 'text' ? (
-                      <Type size={15} />
-                    ) : (
-                      <Layers size={15} />
-                    )}
-                    <span>{l.name}</span>
-                  </button>
-                  <button
-                    title={l.hidden ? 'Show layer' : 'Hide layer'}
-                    onClick={() =>
-                      change((p) => ({
-                        ...p,
-                        layers: p.layers.map((a) =>
-                          a.id === l.id ? { ...a, hidden: !a.hidden } : a,
-                        ),
-                      }))
-                    }
-                  >
-                    {l.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                  <button
-                    title={l.locked ? 'Unlock layer' : 'Lock layer'}
-                    onClick={() =>
-                      change((p) => ({
-                        ...p,
-                        layers: p.layers.map((a) =>
-                          a.id === l.id ? { ...a, locked: !a.locked } : a,
-                        ),
-                      }))
-                    }
-                  >
-                    {l.locked ? <Lock size={14} /> : <Unlock size={14} />}
-                  </button>
-                </div>
-              ))}
-              <button className="wide-button" onClick={() => upload()}>
-                <Plus size={15} /> Add media
+              </>
+            ) : (
+              <button className="animate-pill" onClick={() => setTimeline(true)}>
+                <Clapperboard size={17} />
+                Animate
+              </button>
+            )}
+            <button
+              className="extra-settings"
+              title="More settings"
+              aria-label="More settings"
+              onClick={() => setAdvanced('effects')}
+            >
+              <SlidersHorizontal size={17} />
+            </button>
+          </div>
+        </main>
+        <aside className="studio-panel right-panel" aria-label="Layout settings">
+          <div className="studio-scroll">
+            <LayoutPanel
+              p={p}
+              current={current}
+              update={update}
+              change={change}
+              version={mediaVersion}
+              editingBeat={editingBeat}
+              onDone={() => setEditingBeat('')}
+            />
+          </div>
+        </aside>
+      </div>
+      {timeline && (
+        <div className="studio-timeline">
+          <div className="timeline-settings">
+            <label>
+              Duration{' '}
+              <input
+                aria-label="Timeline duration"
+                type="number"
+                min={0.5}
+                max={60}
+                step={0.5}
+                value={p.animation.duration}
+                onChange={(e) =>
+                  change((p) => ({
+                    ...p,
+                    animation: {
+                      ...p.animation,
+                      duration: Math.max(0.5, Math.min(60, +e.target.value)),
+                    },
+                  }))
+                }
+              />
+              s
+            </label>
+            <button onClick={() => setAdvanced('motion')}>Animation settings</button>
+          </div>
+          <BeatTimeline
+            p={p}
+            current={current}
+            time={time}
+            setTime={(t) => {
+              setPlaying(false)
+              setTime(t)
+            }}
+            change={change}
+            editing={editingBeat}
+            setEditing={setEditingBeat}
+          />
+        </div>
+      )}
+      {showMedia && (
+        <>
+          <button
+            className="popover-dismiss"
+            aria-label="Close media library"
+            onClick={() => setShowMedia(false)}
+          />
+          <div className="media-library">
+            <div className="popover-heading">
+              <h3>Media</h3>
+              <button aria-label="Close media picker" onClick={() => setShowMedia(false)}>
+                <X size={17} />
               </button>
             </div>
-          )}
-        </main>
-      </div>
-      {preview && (
-        <button className="exit-preview secondary" onClick={() => setPreview(false)}>
-          <X size={16} /> Exit preview
-        </button>
+            <div className="media-library-items">
+              {[
+                ...new Map(
+                  [...p.layers.filter((l) => l.kind === 'media' && l.src), ...library].map((l) => [
+                    l.src,
+                    l,
+                  ]),
+                ).values(),
+              ].map((l) => (
+                <button
+                  key={l.src}
+                  title={l.name}
+                  onClick={() => {
+                    const m = media.cache.get(l.src)
+                    update({
+                      src: l.src,
+                      mediaType: l.mediaType,
+                      name: l.name,
+                      ...(current?.device === 'none' && m
+                        ? fitMedia(
+                            p,
+                            m instanceof HTMLVideoElement
+                              ? m.videoWidth / m.videoHeight
+                              : m.naturalWidth / m.naturalHeight,
+                          )
+                        : {}),
+                    })
+                    setShowMedia(false)
+                  }}
+                >
+                  {l.mediaType === 'image' ? (
+                    <img src={l.src} alt={l.name} />
+                  ) : (
+                    <Clapperboard size={30} />
+                  )}
+                </button>
+              ))}
+              <button
+                className="media-add"
+                onClick={() => {
+                  upload(current?.id)
+                  setShowMedia(false)
+                }}
+              >
+                <Plus size={25} />
+                <span>Add media</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {advanced && (
+        <div className="modal-backdrop" onClick={() => setAdvanced('')}>
+          <div
+            className="advanced-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={panelNames[advanced]}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="popover-heading">
+              <h2>{panelNames[advanced]}</h2>
+              <button aria-label="Close settings panel" onClick={() => setAdvanced('')}>
+                <X size={19} />
+              </button>
+            </div>
+            <nav className="advanced-tabs">
+              {panels
+                .filter((v) => v.id !== 'mockup')
+                .map(({ id, icon: Icon, label }) => (
+                  <button
+                    key={id}
+                    aria-label={label + ' settings'}
+                    className={advanced === id ? 'active' : ''}
+                    title={label}
+                    onClick={() => setAdvanced(id)}
+                  >
+                    <Icon size={17} />
+                  </button>
+                ))}
+            </nav>
+            <div className="advanced-scroll">
+              <Inspector
+                panel={advanced}
+                p={p}
+                selected={selected}
+                setSelected={setSelected}
+                change={change}
+                update={update}
+                upload={upload}
+                time={time}
+                notify={notify}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      {showCredits && (
+        <div className="modal-backdrop" onClick={() => setShowCredits(false)}>
+          <div
+            className="modal credits-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="About OpenShot"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-heading">
+              <h2>OpenShot</h2>
+              <button aria-label="Close credits" onClick={() => setShowCredits(false)}>
+                <X size={19} />
+              </button>
+            </div>
+            <p>A free screenshot and video mockup editor. Your files stay on your device.</p>
+            <p>
+              Device models are made by independent artists and used under their published licenses.
+              Exports using these models include a companion credit file.
+            </p>
+            <button
+              className="wide-button"
+              onClick={() => {
+                const credit = deviceCredits(p.layers)
+                if (credit)
+                  download(new Blob([credit], { type: 'text/plain' }), 'model-credits.txt')
+              }}
+            >
+              Save model credits
+            </button>
+            <pre>{deviceCredits(p.layers) || 'Choose a device to see its credit here.'}</pre>
+            <a
+              className="wide-button"
+              href={repo + '/blob/main/docs/device-models.md'}
+              target="_blank"
+              rel="noreferrer"
+            >
+              All model credits
+            </a>
+            <button
+              className="wide-button"
+              onClick={() => {
+                setShowCredits(false)
+                setDialog('desktop')
+              }}
+            >
+              <MonitorDown size={16} />
+              Get desktop app
+            </button>
+            <a className="wide-button" href={repo} target="_blank" rel="noreferrer">
+              <Github size={16} />
+              GitHub
+            </a>
+          </div>
+        </div>
       )}
       {draggingFile && (
         <div className="drop-overlay">
@@ -1220,6 +1399,11 @@ export default function App() {
             {dialog === 'export' && (
               <>
                 <p className="modal-note">Save your image or animation. No watermark is added.</p>
+                {deviceCredits(p.layers) && (
+                  <p className="panel-note">
+                    This device model needs attribution. Your export includes a credit file.
+                  </p>
+                )}
                 <div className="export-type">
                   <button className={!isMotion ? 'active' : ''} onClick={() => setFormat('png')}>
                     <FileImage size={16} /> Image
@@ -1255,6 +1439,16 @@ export default function App() {
                   }))}
                   onChange={(v) => setScale(+v)}
                 />
+                {isMotion && (
+                  <Select
+                    label="Frame rate"
+                    value={String(p.animation.fps)}
+                    options={[24, 30, 45, 60].map((f) => ({ value: String(f), label: f + ' fps' }))}
+                    onChange={(fps) =>
+                      change((p) => ({ ...p, animation: { ...p.animation, fps: +fps } }))
+                    }
+                  />
+                )}
                 <div className="export-dimensions">
                   {dimensions}
                   {isMotion && (
@@ -1283,13 +1477,18 @@ export default function App() {
                 </label>
                 {isMotion && (
                   <p className="panel-note">
-                    Animations export without audio. Transparent video backgrounds are flattened to
-                    black in MP4.
+                    Unmuted video clips include audio. Use WebM for a transparent background; MP4
+                    uses black.
                   </p>
                 )}
                 {format === 'jpeg' && p.background.type === 'transparent' && (
                   <p className="panel-note">
                     JPG does not support transparency. Use PNG or WebP to keep it.
+                  </p>
+                )}
+                {exportError && (
+                  <p className="export-error" role="alert">
+                    {exportError}
                   </p>
                 )}
                 {progress !== null ? (
@@ -1433,6 +1632,9 @@ export default function App() {
                   className="primary full"
                   onClick={() => {
                     change(() => newProject())
+                    setTimeline(false)
+                    setEditingBeat('')
+                    setLibrary([])
                     setTime(0)
                     setPlaying(false)
                     setDialog('')

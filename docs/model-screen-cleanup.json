@@ -1,0 +1,58 @@
+[
+  {
+    "file": "iphone-17-pro-max.glb",
+    "removed_images": 1,
+    "wiped_bytes": 97870,
+    "before_sha256": "5207fa66e02c44b5dcb94b733860911a84792e41dd3b3696678cfe42f215979e",
+    "sha256": "3416aa1892fa489f5e9af95c002d2eb1de82992834cdd7ba5885cc5db888363b",
+    "bytes": 461652
+  },
+  {
+    "file": "iphone-12-pro.glb",
+    "removed_images": 1,
+    "wiped_bytes": 39622,
+    "before_sha256": "ada6aa7c2365c4cdd447737a83e743b01af2edbb15b9dfc4817a74c1ff459cb9",
+    "sha256": "4046193269df3c088ca8398649a2782e8969a29494ab08f2d5c3f35eda5a01a5",
+    "bytes": 580944
+  },
+  {
+    "file": "galaxy-s21-ultra.glb",
+    "removed_images": 1,
+    "wiped_bytes": 545192,
+    "before_sha256": "1d0b71e4a041d6fd87b87b44b63c935291c3015bb7716d11a20b7e8e1dcfedfc",
+    "sha256": "2d12da1bdb65a7e8493700cc111fc259a600c632add984f2e8d45cd2e51264a1",
+    "bytes": 1016968
+  },
+  {
+    "file": "ipad-mini-6.glb",
+    "removed_images": 1,
+    "wiped_bytes": 254362,
+    "before_sha256": "0946ef23ddd9c25826ef20a169d6f11331e47c3483ae6b626dddc431f3628cdd",
+    "sha256": "93dff5a8d23087bec193d5c396a61da86ea23512ba355e8b6fe407717db6a369",
+    "bytes": 1017224
+  },
+  {
+    "file": "macbook-pro-16.glb",
+    "removed_images": 1,
+    "wiped_bytes": 24374,
+    "before_sha256": "0fe4b20eeb997bb0f7db546c1a33099a95224413edee2ad21b321ac53768483d",
+    "sha256": "96d0c784ef7402be74915d174a0d5dc9d1ea60693a63fbf592f51b0c58647bd8",
+    "bytes": 2346500
+  },
+  {
+    "file": "apple-watch-series-7.glb",
+    "removed_images": 1,
+    "wiped_bytes": 316816,
+    "before_sha256": "79c39d6f1f0ebc42fe63682a36e24eb0c6f85900ea3537da833e319d073e6741",
+    "sha256": "e1d848ded09f0a1fe00118044212b788e6bb9af93d8a667d049a51f03ac401cc",
+    "bytes": 3419644
+  },
+  {
+    "file": "desktop-monitor.glb",
+    "removed_images": 0,
+    "wiped_bytes": 0,
+    "before_sha256": "9ebf01e10c083652f30c5e4bce298ebdeed0b46f846dcef7dae8b5827e9f09ac",
+    "sha256": "9ebf01e10c083652f30c5e4bce298ebdeed0b46f846dcef7dae8b5827e9f09ac",
+    "bytes": 2371324
+  }
+]

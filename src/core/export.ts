@@ -1,6 +1,6 @@
 import { GIFEncoder, quantize, applyPalette } from 'gifenc'
-import { Muxer, ArrayBufferTarget } from 'mp4-muxer'
 import { media, render } from './renderer'
+import { deviceCredits } from './devices'
 import type { Project } from './model'
 export type Format = 'png' | 'jpeg' | 'webp' | 'mp4' | 'webm' | 'gif'
 export interface ExportOptions {
@@ -56,7 +56,7 @@ export async function exportProject(p: Project, o: ExportOptions): Promise<Blob>
       await media.seek(p, frame / fps)
       render(c, p, frame / fps)
       const data = c.getImageData(0, 0, cv.width, cv.height).data,
-        palette = quantize(data, 256, { format: 'rgba4444' }),
+        palette = quantize(data, Math.max(32, Math.round(256 * o.quality)), { format: 'rgba4444' }),
         indexed = applyPalette(data, palette, 'rgba4444')
       const transparentIndex = palette.findIndex((color: number[]) => color[3] < 128)
       gif.writeFrame(indexed, cv.width, cv.height, {
@@ -73,113 +73,69 @@ export async function exportProject(p: Project, o: ExportOptions): Promise<Blob>
     gif.finish()
     return new Blob([gif.bytesView()], { type: 'image/gif' })
   }
-  if (o.format === 'mp4' && typeof VideoEncoder !== 'undefined') {
-    // H.264 requires even dimensions. Pad the encoder surface by at most one pixel.
-    const ec = document.createElement('canvas')
-    ec.width = cv.width + (cv.width % 2)
-    ec.height = cv.height + (cv.height % 2)
-    const ectx = ec.getContext('2d')!
-    let config: VideoEncoderConfig | undefined
-    for (const codec of ['avc1.640034', 'avc1.420033', 'avc1.42002a']) {
-      try {
-        const candidate: VideoEncoderConfig = {
-          codec,
-          width: ec.width,
-          height: ec.height,
-          bitrate: Math.round(3_000_000 + o.quality * 9_000_000),
-          framerate: fps,
-        }
-        if ((await VideoEncoder.isConfigSupported(candidate)).supported) {
-          config = candidate
-          break
-        }
-      } catch {}
-    }
-    if (config) {
-      const target = new ArrayBufferTarget(),
-        muxer = new Muxer({
-          target,
-          video: { codec: 'avc', width: ec.width, height: ec.height },
-          fastStart: 'in-memory',
-          firstTimestampBehavior: 'offset',
-        })
-      let error: Error | undefined
-      const encoder = new VideoEncoder({
-        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-        error: (e) => {
-          error = e
-        },
-      })
-      encoder.configure(config)
-      try {
-        for (let frame = 0; frame < count; frame++) {
-          check(o.signal)
-          if (error) throw error
-          await media.seek(p, frame / fps)
-          render(c, p, frame / fps)
-          ectx.fillStyle = '#000'
-          ectx.fillRect(0, 0, ec.width, ec.height)
-          ectx.drawImage(cv, 0, 0)
-          const vf = new VideoFrame(ec, {
-            timestamp: Math.round((frame / fps) * 1_000_000),
-            duration: Math.round(1_000_000 / fps),
-          })
-          encoder.encode(vf, { keyFrame: frame % Math.max(1, fps * 2) === 0 })
-          vf.close()
-          if (encoder.encodeQueueSize > 8) await encoder.flush()
-          o.progress((frame + 1) / count)
-          await tick()
-        }
-        await encoder.flush()
-        if (error) throw error
-        muxer.finalize()
-        return new Blob([target.buffer], { type: 'video/mp4' })
-      } finally {
-        encoder.close()
-      }
-    }
-  }
-  const requested =
-    o.format === 'mp4'
-      ? ['video/mp4;codecs=avc1', 'video/mp4']
-      : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
-  const mime = requested.find(
-    (m) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m),
+  const encodeCanvas = document.createElement('canvas')
+  encodeCanvas.width = cv.width + (o.format === 'mp4' ? cv.width % 2 : 0)
+  encodeCanvas.height = cv.height + (o.format === 'mp4' ? cv.height % 2 : 0)
+  const ec = encodeCanvas.getContext('2d')!
+  const audioLayers = p.layers.filter(
+    (l) => !l.hidden && l.kind === 'media' && l.mediaType === 'video' && !l.muted && l.src,
   )
-  if (!mime)
-    throw Error(
-      `${o.format.toUpperCase()} encoding is not available in this browser. Try WebM, GIF, or the desktop app`,
-    )
-  const stream = cv.captureStream(fps),
-    chunks: Blob[] = []
-  const recorder = new MediaRecorder(stream, {
-    mimeType: mime,
-    videoBitsPerSecond: Math.round(3_000_000 + o.quality * 9_000_000),
-  })
-  const stopped = new Promise<void>((res, rej) => {
-    recorder.ondataavailable = (e) => {
-      if (e.data.size) chunks.push(e.data)
-    }
-    recorder.onstop = () => res()
-    recorder.onerror = () => rej(Error('Video recording failed'))
-  })
-  try {
-    render(c, p, 0)
-    recorder.start()
-    const start = performance.now()
-    for (let frame = 0; frame < count; frame++) {
+  let mixedAudio: AudioBuffer | undefined
+  if (audioLayers.length) {
+    const offline = new OfflineAudioContext(2, Math.ceil(p.animation.duration * 48000), 48000)
+    for (const l of audioLayers) {
       check(o.signal)
-      await media.seek(p, frame / fps)
-      render(c, p, frame / fps)
-      o.progress((frame + 1) / count)
-      const delay = ((frame + 1) / fps) * 1000 - (performance.now() - start)
-      if (delay > 0) await new Promise((r) => setTimeout(r, delay))
+      let buffer: AudioBuffer
+      try {
+        const bytes = Uint8Array.from(atob(l.src.slice(l.src.indexOf(',') + 1)), (c) =>
+          c.charCodeAt(0),
+        )
+        buffer = await offline.decodeAudioData(bytes.buffer)
+      } catch {
+        throw Error(
+          'The audio in this video could not be decoded. Mute the clip or choose another video format',
+        )
+      }
+      const source = offline.createBufferSource()
+      source.buffer = buffer
+      source.playbackRate.value = l.speed
+      source.loop = true
+      source.loopStart = Math.min(l.trimStart, Math.max(0, buffer.duration - 0.01))
+      source.loopEnd = Math.max(
+        source.loopStart + 0.01,
+        Math.min(l.trimEnd || buffer.duration, buffer.duration),
+      )
+      source.connect(offline.destination)
+      source.start(0, source.loopStart)
+      source.stop(p.animation.duration)
     }
-    recorder.stop()
-    await stopped
-    return new Blob(chunks, { type: mime.split(';')[0] })
-  } finally {
-    if (recorder.state !== 'inactive') recorder.stop()
-    stream.getTracks().forEach((t) => t.stop())
+    mixedAudio = await offline.startRendering()
   }
+  const { exportCanvas } = await import('./encode')
+  return exportCanvas(
+    encodeCanvas,
+    async (t) => {
+      check(o.signal)
+      await media.seek(p, t)
+      render(c, p, t)
+      ec.clearRect(0, 0, encodeCanvas.width, encodeCanvas.height)
+      if (o.format === 'mp4') {
+        ec.fillStyle = '#000'
+        ec.fillRect(0, 0, encodeCanvas.width, encodeCanvas.height)
+      }
+      ec.drawImage(cv, 0, 0)
+      await tick()
+    },
+    {
+      format: o.format as 'mp4' | 'webm',
+      duration: p.animation.duration,
+      fps,
+      mixedAudio,
+      transparent: o.format === 'webm' && p.background.type === 'transparent',
+      signal: o.signal,
+      onProgress: o.progress,
+      credits: deviceCredits(p.layers),
+      quality: o.quality,
+    },
+  )
 }

@@ -1,0 +1,233 @@
+{
+  "recorded": "2026-11-22",
+  "models": [
+    {
+      "id": "iphone-17-pro-max",
+      "title": "iPhone 17 Pro Max",
+      "author": "MajdyModels",
+      "authorUrl": "https://sketchfab.com/MG990",
+      "source": "https://sketchfab.com/3d-models/iphone-17-pro-max-87fc1df741384124a8ce0226d2b2058d",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "file": "iphone-17-pro-max.glb",
+      "downloadUrl": "https://raw.githubusercontent.com/imshaikot/app-preview-craft-skill/main/skills/app-preview-craft/assets/models/iphone-17-pro-max.glb",
+      "downloadedBytes": 461760,
+      "downloadedSha256": "5207fa66e02c44b5dcb94b733860911a84792e41dd3b3696678cfe42f215979e",
+      "packagedBytes": 461652,
+      "packagedSha256": "3416aa1892fa489f5e9af95c002d2eb1de82992834cdd7ba5885cc5db888363b",
+      "triangles": 29544,
+      "packaging": "Distributed prepared asset retained unchanged; upstream already encodes Meshopt geometry and WebP textures. Stock display bitmap references were removed and the original bitmap bytes zeroed; body textures and geometry remain.",
+      "renderChanges": "Screen media replaced at render time; planar screen UVs, orientation and scale normalized in the editor. Authored body materials retained, with optional user-selected finish.",
+      "licenseEvidence": [
+        "https://github.com/imshaikot/app-preview-craft-skill/blob/main/skills/app-preview-craft/assets/models/credits.json",
+        "https://github.com/imshaikot/app-preview-craft-skill/blob/main/skills/app-preview-craft/assets/CREDITS.md",
+        "embedded glTF asset.extras author/license/source"
+      ],
+      "embeddedAssetMetadata": {
+        "generator": "glTF-Transform v4.5.0",
+        "version": "2.0",
+        "extras": {
+          "author": "MajdyModels (https://sketchfab.com/MG990)",
+          "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "source": "https://sketchfab.com/3d-models/iphone-17-pro-max-87fc1df741384124a8ce0226d2b2058d",
+          "title": "iPhone 17 Pro Max",
+          "preparedBy": "app-preview-craft/scripts/models.mjs"
+        }
+      }
+    },
+    {
+      "id": "iphone-12-pro",
+      "title": "iPhone 12 Pro",
+      "author": "DatSketch",
+      "authorUrl": "https://sketchfab.com/DatSketch",
+      "source": "https://sketchfab.com/3d-models/iphone-12-pro-05dfc991665e45c68c8b7062136c0c6e",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "file": "iphone-12-pro.glb",
+      "downloadUrl": "https://raw.githubusercontent.com/imshaikot/app-preview-craft-skill/main/skills/app-preview-craft/assets/models/iphone-12-pro.glb",
+      "downloadedBytes": 581096,
+      "downloadedSha256": "ada6aa7c2365c4cdd447737a83e743b01af2edbb15b9dfc4817a74c1ff459cb9",
+      "packagedBytes": 580944,
+      "packagedSha256": "4046193269df3c088ca8398649a2782e8969a29494ab08f2d5c3f35eda5a01a5",
+      "triangles": 73187,
+      "packaging": "Distributed prepared asset retained unchanged; upstream already encodes Meshopt geometry and WebP textures. Stock display bitmap references were removed and the original bitmap bytes zeroed; body textures and geometry remain.",
+      "renderChanges": "Screen media replaced at render time; planar screen UVs, orientation and scale normalized in the editor. Authored body materials retained, with optional user-selected finish.",
+      "licenseEvidence": [
+        "https://github.com/imshaikot/app-preview-craft-skill/blob/main/skills/app-preview-craft/assets/models/credits.json",
+        "https://github.com/imshaikot/app-preview-craft-skill/blob/main/skills/app-preview-craft/assets/CREDITS.md",
+        "embedded glTF asset.extras author/license/source"
+      ],
+      "embeddedAssetMetadata": {
+        "generator": "glTF-Transform v4.5.0",
+        "version": "2.0",
+        "extras": {
+          "author": "DatSketch (https://sketchfab.com/DatSketch)",
+          "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "source": "https://sketchfab.com/3d-models/iphone-12-pro-05dfc991665e45c68c8b7062136c0c6e",
+          "title": "iPhone 12 Pro",
+          "preparedBy": "app-preview-craft/scripts/models.mjs"
+        }
+      }
+    },
+    {
+      "id": "galaxy-s21-ultra",
+      "title": "Samsung Galaxy S21 Ultra",
+      "author": "DatSketch",
+      "authorUrl": "https://sketchfab.com/DatSketch",
+      "source": "https://sketchfab.com/3d-models/samsung-galaxy-s21-ultra-cd962832be7744efb6b37fe0ee2027e7",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "file": "galaxy-s21-ultra.glb",
+      "downloadUrl": "https://raw.githubusercontent.com/imshaikot/app-preview-craft-skill/main/skills/app-preview-craft/assets/models/galaxy-s21-ultra.glb",
+      "downloadedBytes": 1017056,
+      "downloadedSha256": "1d0b71e4a041d6fd87b87b44b63c935291c3015bb7716d11a20b7e8e1dcfedfc",
+      "packagedBytes": 1016968,
+      "packagedSha256": "2d12da1bdb65a7e8493700cc111fc259a600c632add984f2e8d45cd2e51264a1",
+      "triangles": 24409,
+      "packaging": "Distributed prepared asset retained unchanged; upstream already encodes Meshopt geometry and WebP textures. Stock display bitmap references were removed and the original bitmap bytes zeroed; body textures and geometry remain.",
+      "renderChanges": "Screen media replaced at render time; planar screen UVs, orientation and scale normalized in the editor. Authored body materials retained, with optional user-selected finish.",
+      "licenseEvidence": [
+        "https://github.com/imshaikot/app-preview-craft-skill/blob/main/skills/app-preview-craft/assets/models/credits.json",
+        "https://github.com/imshaikot/app-preview-craft-skill/blob/main/skills/app-preview-craft/assets/CREDITS.md",
+        "embedded glTF asset.extras author/license/source"
+      ],
+      "embeddedAssetMetadata": {
+        "generator": "glTF-Transform v4.5.0",
+        "version": "2.0",
+        "extras": {
+          "author": "DatSketch (https://sketchfab.com/DatSketch)",
+          "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "source": "https://sketchfab.com/3d-models/samsung-galaxy-s21-ultra-cd962832be7744efb6b37fe0ee2027e7",
+          "title": "Samsung Galaxy S21 Ultra",
+          "preparedBy": "app-preview-craft/scripts/models.mjs"
+        }
+      }
+    },
+    {
+      "id": "ipad-mini-6",
+      "title": "iPad mini 6 (2021)",
+      "author": "DatSketch",
+      "authorUrl": "https://sketchfab.com/DatSketch",
+      "source": "https://sketchfab.com/3d-models/ipad-mini-6-2021-f363c2b1c74a462588db184bd4fb024e",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "file": "ipad-mini-6.glb",
+      "downloadUrl": "https://github.com/sceneview/sceneview/releases/download/assets-v1/a462088b7bd84b7752802c109beee04110047c3b1a4f355624c863f790e93d5e",
+      "downloadedBytes": 1986244,
+      "downloadedSha256": "a462088b7bd84b7752802c109beee04110047c3b1a4f355624c863f790e93d5e",
+      "packagedBytes": 1017224,
+      "packagedSha256": "93dff5a8d23087bec193d5c396a61da86ea23512ba355e8b6fe407717db6a369",
+      "triangles": 39462,
+      "packaging": "Lossless Meshopt buffer compression and lossless WebP texture re-encoding. No geometry simplification, quantization, hierarchy flattening or material merging. Stock display bitmap references were removed and the original bitmap bytes zeroed; body textures and geometry remain.",
+      "renderChanges": "Screen media replaced at render time; planar screen UVs, orientation and scale normalized in the editor. Authored body materials retained, with optional user-selected finish.",
+      "licenseEvidence": [
+        "https://github.com/sceneview/sceneview/blob/main/assets/CREDITS.md",
+        "embedded glTF asset.extras author/license/source"
+      ],
+      "embeddedAssetMetadata": {
+        "generator": "glTF-Transform v4.5.1",
+        "version": "2.0",
+        "extras": {
+          "author": "DatSketch (https://sketchfab.com/DatSketch)",
+          "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "source": "https://sketchfab.com/3d-models/ipad-mini-6-2021-f363c2b1c74a462588db184bd4fb024e",
+          "title": "IPad Mini 6 2021"
+        }
+      }
+    },
+    {
+      "id": "macbook-pro-16",
+      "title": "MacBook Pro M3 16-inch (2024)",
+      "author": "jackbaeten",
+      "authorUrl": "https://sketchfab.com/jackbaeten",
+      "source": "https://sketchfab.com/3d-models/macbook-pro-m3-16-inch-2024-8e34fc2b303144f78490007d91ff57c4",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "file": "macbook-pro-16.glb",
+      "downloadUrl": "https://raw.githubusercontent.com/imshaikot/app-preview-craft-skill/main/skills/app-preview-craft/assets/models/macbook-pro-16.glb",
+      "downloadedBytes": 2346720,
+      "downloadedSha256": "0fe4b20eeb997bb0f7db546c1a33099a95224413edee2ad21b321ac53768483d",
+      "packagedBytes": 2346500,
+      "packagedSha256": "96d0c784ef7402be74915d174a0d5dc9d1ea60693a63fbf592f51b0c58647bd8",
+      "triangles": 112625,
+      "packaging": "Distributed prepared asset retained unchanged; upstream already encodes Meshopt geometry and WebP textures. Stock display bitmap references were removed and the original bitmap bytes zeroed; body textures and geometry remain.",
+      "renderChanges": "Screen media replaced at render time; planar screen UVs, orientation and scale normalized in the editor. Authored body materials retained, with optional user-selected finish.",
+      "licenseEvidence": [
+        "https://github.com/imshaikot/app-preview-craft-skill/blob/main/skills/app-preview-craft/assets/models/credits.json",
+        "https://github.com/imshaikot/app-preview-craft-skill/blob/main/skills/app-preview-craft/assets/CREDITS.md",
+        "embedded glTF asset.extras author/license/source"
+      ],
+      "embeddedAssetMetadata": {
+        "generator": "glTF-Transform v4.5.0",
+        "version": "2.0",
+        "extras": {
+          "author": "jackbaeten (https://sketchfab.com/jackbaeten)",
+          "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "source": "https://sketchfab.com/3d-models/macbook-pro-m3-16-inch-2024-8e34fc2b303144f78490007d91ff57c4",
+          "title": "macbook pro M3 16 inch 2024",
+          "preparedBy": "app-preview-craft/scripts/models.mjs"
+        }
+      }
+    },
+    {
+      "id": "desktop-monitor",
+      "title": "Desktop monitor",
+      "author": "tevy.dev",
+      "authorUrl": "https://tevy.dev",
+      "source": "https://tevy.dev/models/desktop-monitor",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "file": "desktop-monitor.glb",
+      "downloadUrl": "https://tevy.dev/models/desktop-monitor/v1/lod0.glb",
+      "downloadedBytes": 2371324,
+      "downloadedSha256": "9ebf01e10c083652f30c5e4bce298ebdeed0b46f846dcef7dae8b5827e9f09ac",
+      "packagedBytes": 2371324,
+      "packagedSha256": "9ebf01e10c083652f30c5e4bce298ebdeed0b46f846dcef7dae8b5827e9f09ac",
+      "triangles": 13318,
+      "packaging": "Distributed pinned v1 LOD0 asset retained unchanged; upstream Meshopt geometry and KTX2 textures.",
+      "renderChanges": "Screen media replaced at render time; planar screen UVs, orientation and scale normalized in the editor. Authored body materials retained, with optional user-selected finish.",
+      "licenseEvidence": [
+        "https://tevy.dev/models/desktop-monitor.json",
+        "https://tevy.dev/docs",
+        "embedded glTF asset.copyright"
+      ],
+      "embeddedAssetMetadata": {
+        "generator": "tevy.dev",
+        "version": "2.0",
+        "copyright": "CC0 1.0, https://tevy.dev"
+      }
+    },
+    {
+      "id": "apple-watch-series-7",
+      "title": "Apple Watch Series 7",
+      "author": "SDC PERFORMANCE™",
+      "authorUrl": "https://sketchfab.com/3Duae",
+      "source": "https://sketchfab.com/3d-models/apple-watch-series-7-free-watch-face-sdctm-cf15ecbf159f42a28df5e56bdfa666bb",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "file": "apple-watch-series-7.glb",
+      "downloadUrl": "https://github.com/sceneview/sceneview/releases/download/assets-v1/ac3c33a32bc27c562e6655245e20327d17c77c988f11aab3016496d851e4e5e3",
+      "downloadedBytes": 5904504,
+      "downloadedSha256": "ac3c33a32bc27c562e6655245e20327d17c77c988f11aab3016496d851e4e5e3",
+      "packagedBytes": 3419644,
+      "packagedSha256": "e1d848ded09f0a1fe00118044212b788e6bb9af93d8a667d049a51f03ac401cc",
+      "triangles": 156139,
+      "packaging": "Lossless Meshopt buffer compression and lossless WebP texture re-encoding. No geometry simplification, quantization, hierarchy flattening or material merging. Stock display bitmap references were removed and the original bitmap bytes zeroed; body textures and geometry remain.",
+      "renderChanges": "Screen media replaced at render time; planar screen UVs, orientation and scale normalized in the editor. Authored body materials retained, with optional user-selected finish.",
+      "licenseEvidence": [
+        "https://github.com/sceneview/sceneview/blob/main/assets/CREDITS.md",
+        "embedded glTF asset.extras author/license/source"
+      ],
+      "embeddedAssetMetadata": {
+        "generator": "glTF-Transform v4.5.1",
+        "version": "2.0",
+        "extras": {
+          "author": "SDC PERFORMANCE™️ (https://sketchfab.com/3Duae)",
+          "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "source": "https://sketchfab.com/3d-models/apple-watch-series-7-free-watch-face-sdctm-cf15ecbf159f42a28df5e56bdfa666bb",
+          "title": "Apple Watch Series 7 - Free Watch-Face SDC™️"
+        }
+      }
+    }
+  ]
+}

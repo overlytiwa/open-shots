@@ -8,10 +8,7 @@ const color = (v: unknown, d: string) => (typeof v === 'string' && /^#[\da-f]{6}
 const choice = <T extends string>(v: unknown, allowed: readonly T[], d: T): T =>
   allowed.includes(v as T) ? (v as T) : d
 const src = (v: unknown) =>
-  typeof v === 'string' &&
-  (v.startsWith('data:image/') || v.startsWith('data:video/') || v === './sample.svg')
-    ? v
-    : ''
+  typeof v === 'string' && (v.startsWith('data:image/') || v.startsWith('data:video/')) ? v : ''
 export function parseProject(input: unknown): Project {
   const p = obj(input),
     base = newProject()
@@ -42,9 +39,11 @@ export function parseProject(input: unknown): Project {
         ['gradient', 'solid', 'image', 'transparent', 'magic', 'mesh'],
         base.background.type,
       ),
-      colors: Array.isArray(b.colors)
-        ? b.colors.slice(0, 5).map((v: unknown) => color(v, '#7670b8'))
-        : base.background.colors,
+      colors:
+        Array.isArray(b.colors) &&
+        !['#ff6534,#ff005f,#792eff', '#c4b5fd,#765bea,#352784'].includes(b.colors.join(','))
+          ? b.colors.slice(0, 5).map((v: unknown) => color(v, '#7670b8'))
+          : base.background.colors,
       angle: num(b.angle, 135, 0, 360),
       src: src(b.src),
       blur: num(b.blur, 0, 0, 100),
@@ -52,6 +51,24 @@ export function parseProject(input: unknown): Project {
       pattern: choice(b.pattern, ['none', 'grid', 'dots', 'lines'], 'none'),
       overlay: choice(b.overlay, ['none', 'window', 'leaves', 'diagonal'], 'none'),
       overlayOpacity: num(b.overlayOpacity, 20, 0, 100),
+    },
+    effects: {
+      vfx: choice(
+        obj(p.effects).vfx,
+        [
+          'none',
+          'noise',
+          'vhs',
+          'tv',
+          'vhs-glitch',
+          'tech-glitch',
+          'light-leak',
+          'particles',
+          'glitter',
+        ],
+        'none',
+      ),
+      intensity: num(obj(p.effects).intensity, 50, 0, 100),
     },
     watermark: {
       text: str(m.text, '', 200),
@@ -84,6 +101,10 @@ export function parseProject(input: unknown): Project {
       l.name = str(v.name, 'Layer', 120)
       l.kind = choice(v.kind, ['media', 'text', 'shape', 'code'], 'media')
       l.src = src(v.src)
+      if (v.src === './sample.svg') {
+        l.device = 'none'
+        l.model = ''
+      }
       l.mediaType = choice(v.mediaType, ['image', 'video'], 'image')
       for (const [key, min, max] of [
         ['x', -200, 300],
@@ -98,6 +119,7 @@ export function parseProject(input: unknown): Project {
         ['radius', 0, 500],
         ['shadow', 0, 100],
         ['shadowAngle', 0, 360],
+        ['shadowDistance', 0, 120],
         ['reflection', 0, 100],
         ['padding', 0, 100],
         ['cropX', 0, 100],
@@ -121,14 +143,41 @@ export function parseProject(input: unknown): Project {
         'bold',
         'muted',
         'landscape',
+        'displayOnly',
       ] as const)
         l[key] = typeof v[key] === 'boolean' ? v[key] : l[key]
+      l.finish = typeof v.finish === 'string' && /^#[\da-f]{6}$/i.test(v.finish) ? v.finish : ''
+      l.beats = Array.isArray(v.beats)
+        ? v.beats.slice(0, 100).map((input: unknown) => {
+            const b = obj(input),
+              pose = obj(b.pose)
+            return {
+              id: uid(),
+              time: num(b.time, 5, 0, 60),
+              duration: num(b.duration, 1, 0.1, 20),
+              pose: {
+                x: num(pose.x, 50, -200, 300),
+                y: num(pose.y, 50, -200, 300),
+                scale: num(pose.scale, 1, 0.01, 5),
+                rotate: num(pose.rotate, 0, -360, 360),
+                rotateX: num(pose.rotateX, 0, -180, 180),
+                rotateY: num(pose.rotateY, 0, -180, 180),
+              },
+            }
+          })
+        : []
       l.model = str(v.model, '', 80)
       l.device = choice(
         v.device,
         devices.map((d) => d.id),
         'none',
       )
+      if (v.src === './sample.svg') {
+        l.device = 'none'
+        l.model = ''
+        l.width = 75
+        l.height = 75
+      }
       l.style = choice(
         v.style,
         [
@@ -140,6 +189,10 @@ export function parseProject(input: unknown): Project {
           'inset-dark',
           'outline',
           'border',
+          'retro',
+          'card',
+          'stack',
+          'stack-2',
         ],
         'default',
       )

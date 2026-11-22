@@ -1,0 +1,72 @@
+[
+  {
+    "file": "iphone-17-pro-max.png",
+    "bytes": 207335,
+    "sha256": "d35fa5ac55dbabe5ca7d22473f080126995082e68d799e19f863109e69d6aa02"
+  },
+  {
+    "file": "iphone-17-pro-max-mask.png",
+    "bytes": 42506,
+    "sha256": "69420ccbf8c63a4667d207426f9abe6e4264f0f83ee678952d836a87b758a853"
+  },
+  {
+    "file": "iphone-12-pro.png",
+    "bytes": 185297,
+    "sha256": "8c89736297590b955029fb183aef318c5699ad91b1a9db988707d7756a5344d0"
+  },
+  {
+    "file": "iphone-12-pro-mask.png",
+    "bytes": 43997,
+    "sha256": "e1e4e8c5d2c87a4d018e8ef48e295cdc6a5180f59696a3aae55c2239dc50fe2f"
+  },
+  {
+    "file": "galaxy-s21-ultra.png",
+    "bytes": 154347,
+    "sha256": "5bcf28972085914011ebf494397df756fb364b6014e793bb6d6ebcc3a09c20e9"
+  },
+  {
+    "file": "galaxy-s21-ultra-mask.png",
+    "bytes": 32073,
+    "sha256": "e3573417a400d631a0a58a31c0d11e1e8918a79eba7cca60d3ffd598627bb476"
+  },
+  {
+    "file": "macbook-pro-16.png",
+    "bytes": 246427,
+    "sha256": "c54ee31f19e5d0952724520ce1e8bf405eb692b53aada6e994371916d8fe911f"
+  },
+  {
+    "file": "macbook-pro-16-mask.png",
+    "bytes": 49071,
+    "sha256": "82309fa8178bf7601abf210d3f5f98190ef4263eb0b70ddbc5fe81cb6fddfb13"
+  },
+  {
+    "file": "ipad-mini-6.png",
+    "bytes": 252060,
+    "sha256": "8baaf6cdbf71faf53a9c7cf307ca3c4068433977b46f8440478f48571134df18"
+  },
+  {
+    "file": "ipad-mini-6-mask.png",
+    "bytes": 65607,
+    "sha256": "0918ab7726d578892599945c69fb7827d27c3e2eb12c7fa4cd554e4f1d995353"
+  },
+  {
+    "file": "apple-watch-series-7.png",
+    "bytes": 282999,
+    "sha256": "4d564094f342660faee1171e82aca7e3859022ac5ccc243c1f0c355ccb385c43"
+  },
+  {
+    "file": "apple-watch-series-7-mask.png",
+    "bytes": 82902,
+    "sha256": "0c002980fcaf91acca401bc00e073f9888af4967faaded1ecdf76c01667c6666"
+  },
+  {
+    "file": "desktop-monitor.png",
+    "bytes": 294870,
+    "sha256": "7d1e598e7731bc9df388e3f427022e68b211d7b2a7c6815ad79f17206332f1f4"
+  },
+  {
+    "file": "desktop-monitor-mask.png",
+    "bytes": 70007,
+    "sha256": "bfda085ddd856047c9e7b3069d30a615c97390a7b19a0e66c3b54b8ee8466baf"
+  }
+]

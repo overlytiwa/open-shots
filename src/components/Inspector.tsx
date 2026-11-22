@@ -166,11 +166,11 @@ export function Inspector({
                   className={'mini-device ' + t.device}
                   style={{ transform: `rotate(${t.rotate}deg)` }}
                 >
-                  <img src="./sample.svg" alt="" />
+                  <span className="template-placeholder" />
                 </div>
                 {['duo', 'trio'].includes(t.layout) && (
                   <div className={'mini-device second ' + t.device}>
-                    <img src="./sample.svg" alt="" />
+                    <span className="template-placeholder" />
                   </div>
                 )}
                 {t.layout === 'caption' && <span>Project notes</span>}
@@ -967,7 +967,7 @@ export function Inspector({
                 onClick={() => update({ filter: f as Layer['filter'] })}
               >
                 <div className={'filter-thumbnail ' + f}>
-                  <img src="./sample.svg" alt="" />
+                  <span className="template-placeholder" />
                 </div>
                 <span>{f === 'vhs' ? 'VHS' : f[0].toUpperCase() + f.slice(1)}</span>
               </button>
@@ -1037,7 +1037,7 @@ export function Inspector({
               <button
                 key={m.id}
                 className={'choice ' + (l.motion === m.id ? 'selected' : '')}
-                onClick={() => update({ motion: m.id, keyframes: [] })}
+                onClick={() => update({ motion: m.id, keyframes: [], beats: [] })}
               >
                 {m.name}
               </button>
@@ -1087,6 +1087,8 @@ export function Inspector({
                 opacity: l.opacity,
               }
               update({
+                beats: [],
+                motion: 'none',
                 keyframes: [...l.keyframes.filter((f) => Math.abs(f.time - time) > 0.05), k].sort(
                   (a, b) => a.time - b.time,
                 ),

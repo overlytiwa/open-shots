@@ -1,5 +1,7 @@
 import type { Layer, Project } from './model'
 import { animatedLayer } from './animation'
+import { deviceRenderer } from './device-service'
+import { deviceAsset } from './devices'
 export type Media = HTMLImageElement | HTMLVideoElement
 export class MediaStore {
   cache = new Map<string, Media>()
@@ -32,6 +34,7 @@ export class MediaStore {
   }
   async prepare(p: Project) {
     await Promise.all([
+      deviceRenderer.prepare(p.layers),
       ...p.layers
         .filter((l) => l.src && l.kind === 'media')
         .map((l) => this.get(l.src, l.mediaType)),
@@ -86,7 +89,7 @@ export function corners(l: Layer, w: number, h: number): Point[] {
     rx = rad(l.rotateX),
     ry = rad(l.rotateY),
     rz = rad(l.rotate),
-    perspective = Math.max(w, h) * 1.6
+    perspective = Math.max(w, h) * 0.65
   return [
     [-lw / 2, -lh / 2],
     [lw / 2, -lh / 2],
@@ -158,15 +161,19 @@ function dots(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
   })
 }
 const surfaces = new Map<string, HTMLCanvasElement>()
-function surface(l: Layer, project: Project, ms: MediaStore): HTMLCanvasElement {
+let shadowSurface: HTMLCanvasElement | undefined
+function surface(l: Layer, project: Project, ms: MediaStore, density = 1): HTMLCanvasElement {
   const key = l.id,
     out = surfaces.get(key) || document.createElement('canvas')
   surfaces.set(key, out)
   const w = Math.max(8, Math.round((project.width * l.width) / 100)),
     h = Math.max(8, Math.round((project.height * l.height) / 100))
-  if (out.width !== w) out.width = w
-  if (out.height !== h) out.height = h
+  const pw = Math.max(8, Math.round(w * density)),
+    ph = Math.max(8, Math.round(h * density))
+  if (out.width !== pw) out.width = pw
+  if (out.height !== ph) out.height = ph
   const c = out.getContext('2d')!
+  c.setTransform(density, 0, 0, density, 0, 0)
   c.clearRect(0, 0, w, h)
   if (l.kind === 'text') {
     c.textAlign = l.align
@@ -290,7 +297,7 @@ function surface(l: Layer, project: Project, ms: MediaStore): HTMLCanvasElement 
     sw = w,
     sh = h,
     rr = l.radius
-  const d = l.device,
+  const d = l.displayOnly ? 'none' : l.device,
     unit = Math.min(w, h),
     bezel = Math.max(4, unit * 0.027),
     header = Math.max(24, w * 0.038)
@@ -402,20 +409,32 @@ function surface(l: Layer, project: Project, ms: MediaStore): HTMLCanvasElement 
     sh = h - w * 0.18
     rr = 0
   }
-  if (l.style !== 'default') {
-    const border = l.style.includes('inset') ? l.padding : Math.max(3, l.padding),
-      light = l.style.includes('light') || l.style === 'liquid'
-    c.save()
-    c.globalAlpha = l.style === 'outline' ? 0.9 : 0.5
-    c.fillStyle = l.style === 'border' ? l.frameColor : light ? '#ffffff' : '#111116'
+  if (l.style !== 'default' && d === 'none') {
+    const thick = l.style.includes('inset')
+      ? Math.max(8, l.padding)
+      : l.style === 'border'
+        ? Math.max(3, l.padding * 0.4)
+        : l.style === 'outline'
+          ? 2
+          : Math.max(4, l.padding * 0.3)
+    const light = l.style.includes('light') || l.style === 'liquid'
+    const gradient = c.createLinearGradient(0, 0, w, h)
+    gradient.addColorStop(0, light ? '#ffffffcc' : '#111111bb')
+    gradient.addColorStop(0.5, light ? '#ffffff44' : '#11111155')
+    gradient.addColorStop(1, light ? '#ffffffaa' : '#111111dd')
+    c.fillStyle = l.style === 'border' ? l.frameColor : gradient
     round(c, x, y, sw, sh, rr)
     c.fill()
-    c.restore()
-    x += border
-    y += border
-    sw -= border * 2
-    sh -= border * 2
-    rr = Math.max(0, rr - border * 0.3)
+    c.strokeStyle = light ? '#ffffffbb' : '#ffffff22'
+    c.lineWidth = l.style === 'liquid' ? 3 : 1
+    c.stroke()
+    if (!['retro', 'card', 'stack', 'stack-2'].includes(l.style)) {
+      x += thick
+      y += thick
+      sw -= thick * 2
+      sh -= thick * 2
+      rr = Math.max(0, rr - thick * 0.4)
+    }
   }
   const m = ms.cache.get(l.src)
   c.save()
@@ -521,12 +540,13 @@ function triangle(c: CanvasRenderingContext2D, img: HTMLCanvasElement, s: Point[
         q.y * (e.x * a.y - a.x * e.y) +
         r.y * (a.x * b.y - b.x * a.y)) /
       den
+  const fringe = 1.5 / Math.max(0.05, Math.hypot(c.getTransform().a, c.getTransform().b))
   const center = { x: (p.x + q.x + r.x) / 3, y: (p.y + q.y + r.y) / 3 },
     expanded = d.map((v) => {
       const dx = v.x - center.x,
         dy = v.y - center.y,
         distance = Math.hypot(dx, dy)
-      return { x: v.x + (dx / distance) * 1.5, y: v.y + (dy / distance) * 1.5 }
+      return { x: v.x + (dx / distance) * fringe, y: v.y + (dy / distance) * fringe }
     })
   c.save()
   path(c, expanded)
@@ -726,27 +746,63 @@ export function render(
     if (bg.noise && !performance) noise(c, w, h, bg.noise)
   }
   for (const original of p.layers) {
-    if (original.hidden) continue
+    if (original.hidden || (original.kind === 'media' && !original.src)) continue
     const l = animatedLayer(original, p, t)
     if (l.opacity <= 0 || l.scale <= 0) continue
     c.save()
     c.globalAlpha = l.opacity
     const pts = corners(l, w, h),
-      img = surface(l, p, ms)
+      density = Math.max(0.05, Math.hypot(c.getTransform().a, c.getTransform().b)),
+      isDevice = !!deviceAsset(l) && !l.displayOnly
+    const model = isDevice ? deviceRenderer.draw(l, p, ms.cache.get(l.src), density) : undefined
+    const hardware = !!model?.projected
+    if (isDevice && !model) {
+      c.restore()
+      continue
+    }
+    const img = model?.canvas || surface(l, p, ms, density)
     if (l.shadow && l.shadowType !== 'none') {
+      const shadow = shadowSurface || (shadowSurface = document.createElement('canvas')),
+        pw = Math.max(8, Math.round(w * density)),
+        ph = Math.max(8, Math.round(h * density))
+      if (shadow.width !== pw) shadow.width = pw
+      if (shadow.height !== ph) shadow.height = ph
+      const sc = shadow.getContext('2d')!
+      sc.setTransform(density, 0, 0, density, 0, 0)
+      sc.clearRect(0, 0, w, h)
+      if (hardware) sc.drawImage(img, 0, 0, w, h)
+      else projectQuad(sc, img, pts, 4)
       c.save()
-      c.globalAlpha *= (l.shadow / 100) * 0.65
-      c.filter = `blur(${l.shadowType === 'hug' ? w * 0.01 : w * 0.025}px)`
+      c.globalAlpha *= (l.shadow / 100) * 0.85
+      c.filter = `blur(${l.shadowType === 'hug' ? w * 0.009 : w * 0.025}px)${l.shadowType === 'adaptive' ? '' : ' brightness(0)'}`
       c.translate(
-        Math.cos(rad(l.shadowAngle)) * w * 0.015,
-        Math.sin(rad(l.shadowAngle)) * w * 0.022,
+        (Math.cos(rad(l.shadowAngle)) * l.shadowDistance * w) / 1000,
+        (Math.sin(rad(l.shadowAngle)) * l.shadowDistance * w) / 1000,
       )
-      c.fillStyle =
-        l.shadowType === 'adaptive' && p.background.colors[0]
-          ? p.background.colors.at(-1)!
-          : l.shadowColor
-      path(c, pts)
-      c.fill()
+      c.drawImage(shadow, 0, 0, w, h)
+      c.restore()
+    }
+    if (hardware) {
+      c.drawImage(img, 0, 0, w, h)
+      c.restore()
+      continue
+    }
+    if (['retro', 'card', 'stack', 'stack-2'].includes(l.style)) {
+      c.save()
+      c.translate((l.x * w) / 100, (l.y * h) / 100)
+      c.rotate(rad(l.rotate))
+      const dw = ((w * l.width) / 100) * l.scale,
+        dh = ((h * l.height) / 100) * l.scale
+      const count = l.style.startsWith('stack') ? 2 : 1
+      for (let i = count; i > 0; i--) {
+        c.save()
+        c.translate(l.style === 'retro' ? w * 0.008 * i : -w * 0.006 * i, h * 0.012 * i)
+        c.rotate(l.style === 'stack-2' ? rad(-5 * i) : l.style === 'card' ? rad(-2) : 0)
+        c.fillStyle = l.style === 'retro' ? '#080808' : `rgba(255,255,255,${0.65 - i * 0.12})`
+        round(c, -dw / 2, -dh / 2, dw, dh, l.radius)
+        c.fill()
+        c.restore()
+      }
       c.restore()
     }
     if (l.rotateX === 0 && l.rotateY === 0) {
@@ -772,6 +828,71 @@ export function render(
           reflection = pts.map((a) => ({ x: a.x, y: baseline + (baseline - a.y) * 0.65 }))
         c.globalAlpha *= l.reflection / 100
         projectQuad(c, img, reflection, 4)
+      }
+    }
+    c.restore()
+  }
+  const effect = p.effects || { vfx: 'none', intensity: 50 },
+    strength = effect.intensity / 100
+  if (effect.vfx !== 'none' && strength > 0) {
+    c.save()
+    c.globalAlpha = strength
+    if (effect.vfx === 'noise') noise(c, w, h, 35)
+    if (['vhs', 'tv', 'vhs-glitch', 'tech-glitch'].includes(effect.vfx)) {
+      c.fillStyle = '#05050555'
+      for (let y = 0; y < h; y += Math.max(3, h / 220)) c.fillRect(0, y, w, Math.max(1, h / 600))
+      const vignette = c.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, w * 0.7)
+      vignette.addColorStop(0, '#00000000')
+      vignette.addColorStop(1, '#000000cc')
+      c.fillStyle = vignette
+      c.fillRect(0, 0, w, h)
+      if (effect.vfx !== 'tv') {
+        c.globalCompositeOperation = 'screen'
+        c.fillStyle = '#c92c5920'
+        c.fillRect(0, 0, w, h)
+        c.fillStyle = '#ffffff25'
+        c.fillRect(0, ((t * 0.12) % 1) * h, w, h * 0.015)
+      }
+      if (effect.vfx.includes('glitch')) {
+        for (let i = 0; i < 9; i++) {
+          const y = ((((Math.sin(i * 83 + Math.floor(t * 7)) * 43758.5453) % 1) + 1) % 1) * h
+          c.fillStyle = i % 2 ? '#f5337544' : '#32d7ef33'
+          c.fillRect((i % 3) * w * 0.15, y, w * (0.3 + (i % 3) * 0.2), h * 0.008)
+        }
+      }
+    }
+    if (effect.vfx === 'light-leak') {
+      c.globalCompositeOperation = 'screen'
+      const x = w * (0.15 + Math.sin(t * 0.35) * 0.2),
+        g = c.createRadialGradient(x, h * 0.6, 0, x, h * 0.6, w * 0.85)
+      g.addColorStop(0, '#ffcfb9bb')
+      g.addColorStop(0.25, '#ff432566')
+      g.addColorStop(1, '#ff000000')
+      c.fillStyle = g
+      c.fillRect(0, 0, w, h)
+    }
+    if (effect.vfx === 'particles' || effect.vfx === 'glitter') {
+      c.globalCompositeOperation = 'screen'
+      for (let i = 0; i < 75; i++) {
+        const seed = (Math.sin(i * 127.1 + 311.7) * 43758.5453) % 1,
+          x = ((seed + 1 + t * (0.006 + (i % 4) * 0.002)) % 1) * w,
+          y = ((((Math.sin(i * 74.7) * 1734.3) % 1) + 1 + t * (0.004 + (i % 3) * 0.003)) % 1) * h,
+          r = ((1 + (i % 4)) * w) / 1600
+        c.globalAlpha = strength * (0.2 + (0.6 * (Math.sin(t * 2 + i) + 1)) / 2)
+        c.fillStyle = '#fff9de'
+        c.beginPath()
+        if (effect.vfx === 'glitter') {
+          c.moveTo(x - r * 3, y)
+          c.lineTo(x - r * 0.5, y - r * 0.5)
+          c.lineTo(x, y - r * 3)
+          c.lineTo(x + r * 0.5, y - r * 0.5)
+          c.lineTo(x + r * 3, y)
+          c.lineTo(x + r * 0.5, y + r * 0.5)
+          c.lineTo(x, y + r * 3)
+          c.lineTo(x - r * 0.5, y + r * 0.5)
+          c.closePath()
+        } else c.arc(x, y, r, 0, Math.PI * 2)
+        c.fill()
       }
     }
     c.restore()

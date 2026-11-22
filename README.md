@@ -3,65 +3,50 @@
 <p align="center">A free screenshot and video mockup editor for the web and desktop.</p>
 <p align="center"><a href="https://github.com/overlytiwa/open-shots/releases/latest">Download desktop</a> · <a href="docs/editor.md">Using the editor</a> · <a href="docs/features.md">Features and limits</a></p>
 
-OpenShot takes an image or screen recording and puts it in a layout you can use in a post, a presentation, a product page, or documentation. Add a background, pick a frame, adjust the crop and lighting, and export. Use the same editor in a browser or in the desktop application.
+OpenShot puts your screenshot or screen recording into a frame you can use in a post, presentation, product page or documentation. Pick a device, adjust the layout, add a background and export. It opens with an empty canvas, ready for your own image. No sample screenshot is bundled, including inside the device-model files.
 
-There is no account, subscription, export allowance, paid template tier, or OpenShot watermark. Editing and rendering happen on your device. Your screenshots do not need to pass through someone else's server to get a background and rounded corners.
+There is no account, subscription, export allowance or forced OpenShot watermark. Your files are edited and rendered on your device. The web and desktop versions use the same editor.
 
 ![OpenShot editor](docs/editor.jpg)
 
-## What it does
+## Editing
 
-| Area           | Included                                                                                                                                                                          |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Media          | Import, drop, or paste images and videos. Replace individual screens in a layout.                                                                                                 |
-| Frames         | Screenshot, Chrome, Safari, Arc, macOS, Windows, iPhone, Android, iPad, MacBook, desktop display, watch, and Polaroid.                                                            |
-| Device options | Phone, tablet, laptop, desktop, and watch variants, frame colors, portrait and landscape orientation. These are original procedural illustrations.                                |
-| Layout         | Twelve templates, single, paired, stacked, and grid arrangements, independent layers, drag, resize, ordering, visibility, and locking.                                            |
-| Background     | Twenty-four gradients, custom colors and gradients, transparency, uploaded images, media-matched colors, blurred media, moving mesh, patterns, grain, and shadow overlays.        |
-| Style          | Glass, inset, outline and border treatments, corner radius, padding, shadows, light direction, and reflections.                                                                   |
-| Effects        | Three-axis rotation, perspective, scale, crop, horizontal and vertical flip, monochrome, warm, cool, vintage, VHS, glitch, brightness, contrast, saturation, and blur.            |
-| Overlays       | Text, code cards, circles, rectangles, rings, arches, spheres, and cubes.                                                                                                         |
-| Motion         | Twenty-four motion presets plus a still setting, per-layer keyframes, easing, timeline scrubbing, looping, focus zoom, pan, orbit, parallax, entrances, and video trimming/speed. |
-| Branding       | Your text or logo, with position, size, and opacity controls.                                                                                                                     |
-| Export         | PNG, JPG, WebP, MP4, WebM, GIF, and PNG to clipboard. Custom dimensions and social presets.                                                                                       |
-| Projects       | Automatic local saving, portable `.openshot` files with embedded media, undo/redo, and self-contained share links.                                                                |
-| Desktop        | The same editor, bundled for offline use, with native screen/window capture.                                                                                                      |
+The Mockup panel contains the frame, media, corner and shadow controls. The Frame panel contains the background, scene overlays, effects and watermark. Position, zoom, tilt and layout previews sit on the right. Changes between layouts animate smoothly, and the interface respects reduced-motion settings. The white, mint, green and teal palette comes from OpenShot's icon.
 
-## Why it is free
+Device mockups use independently licensed 3D models rather than the generic device drawings from the first release. The catalog includes iPhone 17 Pro Max, iPhone 12 Pro, Galaxy S21 Ultra, iPad mini 6, MacBook Pro 16-inch, a desktop monitor and Apple Watch Series 7. A rendered frame fallback works when WebGL is unavailable. [Model credits](docs/device-models.md) identify the artists and licenses. Exports using CC BY models include attribution; keep it with published work.
 
-A screenshot editor should be useful without a recurring bill. OpenShot keeps its editing tools and exports available to everyone, and publishes its source under the MIT license. You can inspect what it does, change it, and keep using the version you have.
+Screenshot frames include Default, Glass Light, Glass Dark, Liquid Glass, Inset Light, Inset Dark, Outline, Border, Retro, Card, Stack and Stack 2. Browser and application window frames are available too. You can combine media, text, code cards and shapes, or start with a template.
 
-The project does not run a cloud rendering service or store your media. That keeps the ordinary editing workflow independent of a subscription backend. Optional Unsplash search talks to Unsplash, and downloading a desktop release talks to GitHub. The editor has no analytics or advertising code.
+## Animation and export
 
-## Desktop downloads
+Add a timed animation, select its clip, then choose its target layout and transition duration. Drag the clip to change its time or drag an edge to change its duration. The timeline also supports playback, scrubbing and looping. Motion presets and explicit keyframes remain available in Animation settings.
 
-Get the current installers from [GitHub Releases](https://github.com/overlytiwa/open-shots/releases/latest). The website's **Get desktop app** button points to the same release files.
+Export PNG, JPG, WebP, MP4, WebM or GIF, or copy a PNG to the clipboard. Video is encoded frame by frame so a slower machine does not silently drop timeline frames. Unmuted video clips retain their audio. A local AAC encoder covers browsers without native AAC encoding. PNG, WebP and WebM support transparency; MP4 uses black behind transparent content. GIF has binary transparency and a 15 fps limit.
 
-| System              | Package                     |
-| ------------------- | --------------------------- |
-| Windows x64         | Installer                   |
-| macOS Apple silicon | DMG and ZIP                 |
-| macOS Intel         | DMG and ZIP                 |
-| Linux x64           | AppImage and Debian package |
+The editor includes a palette of green and teal gradients, custom colors, uploaded backgrounds, media-derived colors, blurred media, grain and scene overlays. Effects include VHS, TV, glitch, light leak, particles and glitter. These are independent implementations, not the reference site's private effect algorithms.
 
-Builds are unsigned until signing credentials are configured. Windows or macOS may display a security prompt. Native packages are built on their matching operating systems by GitHub Actions.
+## Desktop
 
-## Your files
+[GitHub Releases](https://github.com/overlytiwa/open-shots/releases/latest) contains the Windows x64 installer, Linux x64 AppImage and Debian package, and macOS DMG/ZIP files for Intel and Apple silicon. The website's desktop download button links to these files.
 
-OpenShot autosaves the current project in the browser's IndexedDB storage. In the desktop app, that storage belongs to the app. It is not synchronized between devices. Clearing browser data can remove the local copy, so use **Save project** to keep important work as a file.
+The desktop app bundles the editor, fonts, models and encoders for offline use, and adds native screen/window capture. Builds are unsigned until the maintainer configures signing credentials. GitHub Actions builds each platform on its matching operating system.
+
+## Projects and privacy
+
+OpenShot autosaves one current project in local IndexedDB storage. Clearing browser data can remove that copy. Save an `.openshot` project file to keep a portable copy, including its media. There is no cloud media store or account sync.
 
 Share links contain a compressed copy of the project, including its media, in the URL fragment. The fragment is not sent in the initial web request. Anyone who receives the complete link can open the contents. There is no hosted link database or access-control system. Use a project file for large images and videos.
 
-## Feature scope
+There is no analytics or advertising code. Optional Unsplash search talks to Unsplash, and desktop downloads talk to GitHub.
 
-OpenShot is an independent alternative to Shots. It implements the publicly visible screenshot and video mockup workflows with its own renderer, interface, artwork, and templates. It does not reuse Shots' device models, wallpapers, source code, or branding. Its illustrated frames are not scans or licensed photorealistic models of every device Shots offers.
+## Scope
 
-An exhaustive match with every paid or account-only control in Shots has not been verified. [Features and limits](docs/features.md) records what is implemented and where the behavior differs. In particular, animations currently export without audio, MP4 support depends on the available H.264 encoder, and Unsplash search requires an optional server key.
+OpenShot is an independent alternative to Shots. The editor was revised after hands-on tests with desktop and phone images. [The reference review](docs/reference-audit.md) records the observed behavior and the remaining differences. It does not claim an exhaustive match with every paid control. Automatic portrait subject masking, the full device catalog, proprietary wallpapers and paid scene assets are not included.
 
-## Website hosting and releases
+OpenShot's source is MIT licensed. Models and third-party libraries retain their own licenses, listed in [third-party notices](docs/third-party.md). OpenShot is not affiliated with Shots or the separate OpenShot Video Editor project.
 
-The repository includes a Vercel configuration. Import this repository into Vercel as a Vite project; the build command and output directory are already declared. No database or environment variables are needed for editing and exports. For optional background photo search, set `UNSPLASH_ACCESS_KEY` in Vercel. Never put that key in a `VITE_` variable.
+## Website and releases
 
-Every push and pull request runs the tests and builds the website. Pushes to `main` and version tags such as `v1.0.0` trigger Windows, Linux, Intel Mac, and Apple silicon Mac packages. After all four jobs succeed, GitHub publishes a release when the package version has not been released before. Existing releases stay unchanged on ordinary branch pushes. A manual Desktop workflow run builds downloadable workflow artifacts without publishing a release. [Release notes](docs/releases.md) covers this process without requiring end users to build anything.
+The repository is ready to import into Vercel as a Vite project. Its build command and output directory are declared in `vercel.json`. Editing and exports need no database or environment variables. Optional photo search uses a server-only `UNSPLASH_ACCESS_KEY`.
 
-OpenShot is not affiliated with Shots or the separate OpenShot Video Editor project. Device and browser names identify the type of frame being illustrated. Their trademarks belong to their respective owners.
+Pushes and pull requests run the tests and website build. A new package version pushed to `main`, or a version tag, builds all four desktop targets and publishes their installers after every job succeeds. An ordinary push keeps existing releases unchanged. A manual workflow run produces artifacts without publishing. [Release documentation](docs/releases.md) covers the process.

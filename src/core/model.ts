@@ -21,6 +21,10 @@ export type FrameStyle =
   | 'inset-dark'
   | 'outline'
   | 'border'
+  | 'retro'
+  | 'card'
+  | 'stack'
+  | 'stack-2'
 export type Motion =
   | 'none'
   | 'zoom-in'
@@ -58,6 +62,12 @@ export interface Keyframe {
   rotateY: number
   opacity: number
 }
+export interface AnimationBeat {
+  id: string
+  time: number
+  duration: number
+  pose: Pick<Keyframe, 'x' | 'y' | 'scale' | 'rotate' | 'rotateX' | 'rotateY'>
+}
 export interface Layer {
   id: string
   name: string
@@ -80,6 +90,10 @@ export interface Layer {
   shadowColor: string
   device: Device
   model: string
+  displayOnly: boolean
+  finish: string
+  shadowDistance: number
+  beats: AnimationBeat[]
   landscape: boolean
   style: FrameStyle
   frameColor: string
@@ -130,6 +144,19 @@ export interface Project {
     overlay: 'none' | 'window' | 'leaves' | 'diagonal'
     overlayOpacity: number
   }
+  effects: {
+    vfx:
+      | 'none'
+      | 'noise'
+      | 'vhs'
+      | 'tv'
+      | 'vhs-glitch'
+      | 'tech-glitch'
+      | 'light-leak'
+      | 'particles'
+      | 'glitter'
+    intensity: number
+  }
   watermark: {
     text: string
     src: string
@@ -152,24 +179,28 @@ export const layer = (values: Partial<Layer> = {}): Layer => ({
   id: uid(),
   name: 'Screenshot',
   kind: 'media',
-  src: './sample.svg',
+  src: '',
   mediaType: 'image',
   x: 50,
   y: 50,
-  width: 78,
-  height: 69,
+  width: 75,
+  height: 75,
   scale: 1,
   rotate: 0,
   rotateX: 0,
   rotateY: 0,
   opacity: 1,
-  radius: 12,
+  radius: 20,
   shadow: 40,
   shadowType: 'spread',
   shadowAngle: 90,
   shadowColor: '#000000',
-  device: 'browser',
+  device: 'none',
   model: '',
+  displayOnly: false,
+  finish: '',
+  shadowDistance: 24,
+  beats: [],
   landscape: false,
   style: 'default',
   frameColor: '#202229',
@@ -207,23 +238,24 @@ export const layer = (values: Partial<Layer> = {}): Layer => ({
 export const newProject = (): Project => ({
   version: 1,
   name: 'Untitled',
-  width: 1600,
-  height: 1200,
+  width: 1920,
+  height: 1440,
   layers: [layer()],
   background: {
     type: 'gradient',
-    colors: ['#c4b5fd', '#765bea', '#352784'],
-    angle: 135,
+    colors: ['#e0f1c6', '#39c8ab', '#006657'],
+    angle: 45,
     src: '',
     blur: 0,
-    noise: 3,
+    noise: 0,
     pattern: 'none',
     overlay: 'none',
     overlayOpacity: 20,
   },
+  effects: { vfx: 'none', intensity: 50 },
   watermark: { text: '', src: '', opacity: 0.8, size: 24, position: 'bottom-right' },
   animation: {
-    duration: 6,
+    duration: 10,
     fps: 30,
     easing: 'ease-in-out',
     loop: true,
@@ -275,30 +307,30 @@ export const motions: { id: Motion; name: string; group: string }[] = [
   ['slide-right', 'Slide right', 'Entrance'],
 ].map(([id, name, group]) => ({ id: id as Motion, name, group }))
 export const backgrounds = [
-  { name: 'Iris', colors: ['#c4b5fd', '#765bea', '#352784'] },
-  { name: 'Tide', colors: ['#b5f1e2', '#3badaf', '#176282'] },
-  { name: 'Sunset', colors: ['#ffcdaa', '#ef737c', '#7c4087'] },
-  { name: 'Rose', colors: ['#ffe4ec', '#eaa1b2', '#af6989'] },
-  { name: 'Glacier', colors: ['#c4f5ff', '#74a8ea', '#4860bb'] },
-  { name: 'Lime', colors: ['#e9f6ae', '#a5d773', '#4c8c77'] },
-  { name: 'Ember', colors: ['#ffdc8a', '#f18e5c', '#a3415a'] },
-  { name: 'Ink', colors: ['#626773', '#2a2e36', '#111319'] },
-  { name: 'Cloud', colors: ['#ffffff', '#e5e8ef', '#c1c7d5'] },
-  { name: 'Lilac', colors: ['#f2c7fa', '#b29af4', '#7579df'] },
-  { name: 'Marine', colors: ['#81def5', '#3e86db', '#143070'] },
-  { name: 'Peach', colors: ['#fff3dd', '#edc6ba', '#c39fc3'] },
-  { name: 'Aurora', colors: ['#bdffe3', '#728fff', '#a347f5'] },
-  { name: 'Sand', colors: ['#fff0c6', '#e0b783', '#9d7c69'] },
-  { name: 'Cherry', colors: ['#ffb1c7', '#dd447f', '#702257'] },
-  { name: 'Forest', colors: ['#bedbb2', '#4e956a', '#183c3b'] },
-  { name: 'Electric', colors: ['#c0caff', '#9a5fff', '#4731ac'] },
-  { name: 'Ocean', colors: ['#87ffe4', '#338bc8', '#11235a'] },
-  { name: 'Copper', colors: ['#f5bf97', '#c17854', '#6a3f3b'] },
-  { name: 'Steel', colors: ['#c1d5df', '#617888', '#25303e'] },
-  { name: 'Orchid', colors: ['#edc1ff', '#b459cc', '#612b91'] },
-  { name: 'Dawn', colors: ['#ffd6b8', '#d5adce', '#8792c5'] },
-  { name: 'Mint', colors: ['#dcffe7', '#8ad8b0', '#3b8e7d'] },
-  { name: 'Clay', colors: ['#eccdc3', '#ca9f9a', '#815c74'] },
+  { name: 'Mint', colors: ['#e0f1c6', '#39c8ab', '#006657'] },
+  { name: 'Teal', colors: ['#b8f5df', '#09baa6', '#004a42'] },
+  { name: 'Lime', colors: ['#f0f5df', '#d2f68d', '#64b47a'] },
+  { name: 'Forest', colors: ['#c6e7ba', '#25845d', '#063d30'] },
+  { name: 'Pearl', colors: ['#ffffff', '#e2eeec', '#aec9c1'] },
+  { name: 'Sage', colors: ['#edf2dc', '#bbd0b8', '#6a8b7a'] },
+  { name: 'Jade', colors: ['#dcffe6', '#6fd6ac', '#167b60'] },
+  { name: 'Fern', colors: ['#e2efc9', '#9fc27d', '#3c785c'] },
+  { name: 'Seafoam', colors: ['#f3fff6', '#c2eee2', '#72b9a8'] },
+  { name: 'Cypress', colors: ['#accabb', '#4a7c6b', '#214c42'] },
+  { name: 'Emerald', colors: ['#cdf5c7', '#37b67b', '#006246'] },
+  { name: 'Chartreuse', colors: ['#f4f7cd', '#d4ee80', '#93bd5c'] },
+  { name: 'Silver', colors: ['#f7fbfa', '#d3dddb', '#a2b4b1'] },
+  { name: 'Spruce', colors: ['#c4eee3', '#4a9d8d', '#1d5f55'] },
+  { name: 'Ivory', colors: ['#fffff4', '#eef0d4', '#ced8b8'] },
+  { name: 'Moss', colors: ['#e6ecd3', '#b1c299', '#6c8a61'] },
+  { name: 'Pistachio', colors: ['#fbffef', '#d3e4ba', '#9dbe8e'] },
+  { name: 'Aqua', colors: ['#c4ffef', '#05c6b4', '#007a72'] },
+  { name: 'Olive', colors: ['#f5f0d5', '#c4cf99', '#879765'] },
+  { name: 'Green glass', colors: ['#e8f7ee', '#a5d7c0', '#438e76'] },
+  { name: 'Deep green', colors: ['#6eae8e', '#1f7158', '#073d31'] },
+  { name: 'White', colors: ['#ffffff', '#f1f7f4', '#d8e8df'] },
+  { name: 'Pale mint', colors: ['#f4fff7', '#ddf4e5', '#b6ddcc'] },
+  { name: 'Dark teal', colors: ['#86c4b3', '#317f70', '#0f4c42'] },
 ]
 export const sizes = [
   { name: 'Landscape', width: 1600, height: 1200 },
@@ -317,7 +349,7 @@ export const templates = [
     name: 'Iris',
     description: 'A simple browser presentation',
     bg: 0,
-    device: 'browser',
+    device: 'none',
     rotate: 0,
     rx: 0,
     ry: 0,
@@ -327,7 +359,7 @@ export const templates = [
     name: 'Perspective',
     description: 'A little depth',
     bg: 4,
-    device: 'browser',
+    device: 'none',
     rotate: -7,
     rx: 12,
     ry: -18,
@@ -450,6 +482,10 @@ export function applyTemplate(p: Project, index: number): Project {
     height: h,
     device,
     model: deviceModels[device]?.[0]?.name || '',
+    displayOnly: false,
+    finish: '',
+    shadowDistance: 24,
+    beats: [],
     landscape: false,
     rotate: t.rotate,
     rotateX: t.rx,
@@ -496,37 +532,12 @@ export function applyTemplate(p: Project, index: number): Project {
 
 export const deviceModels: Partial<Record<Device, { name: string; ratio: number }[]>> = {
   iphone: [
-    { name: 'iPhone 17 Pro', ratio: 0.46 },
-    { name: 'iPhone 17', ratio: 0.47 },
-    { name: 'iPhone Air', ratio: 0.46 },
-    { name: 'iPhone 16 Pro', ratio: 0.46 },
-    { name: 'iPhone 15', ratio: 0.47 },
-    { name: 'iPhone 14', ratio: 0.47 },
-    { name: 'iPhone 13', ratio: 0.47 },
-    { name: 'iPhone 12', ratio: 0.47 },
-    { name: 'iPhone SE', ratio: 0.49 },
+    { name: 'iPhone 17 Pro Max', ratio: 440 / 956 },
+    { name: 'iPhone 12 Pro', ratio: 1170 / 2532 },
   ],
-  android: [
-    { name: 'Galaxy S25', ratio: 0.46 },
-    { name: 'Galaxy S10', ratio: 0.47 },
-    { name: 'Pixel 10', ratio: 0.46 },
-  ],
-  tablet: [
-    { name: 'iPad Pro 13', ratio: 0.75 },
-    { name: 'iPad Air 11', ratio: 0.7 },
-    { name: 'iPad mini', ratio: 0.66 },
-  ],
-  laptop: [
-    { name: 'MacBook Pro 16', ratio: 1.55 },
-    { name: 'MacBook Pro 14', ratio: 1.55 },
-    { name: 'MacBook Air 13', ratio: 1.54 },
-  ],
-  desktop: [
-    { name: 'iMac 24', ratio: 1.48 },
-    { name: 'Studio Display', ratio: 1.45 },
-  ],
-  watch: [
-    { name: 'Watch Series 11', ratio: 0.84 },
-    { name: 'Watch Ultra', ratio: 0.86 },
-  ],
+  android: [{ name: 'Galaxy S21 Ultra', ratio: 1440 / 3200 }],
+  tablet: [{ name: 'iPad mini 6', ratio: 1488 / 2266 }],
+  laptop: [{ name: 'MacBook Pro 16-inch', ratio: 1.55 }],
+  desktop: [{ name: 'Desktop monitor', ratio: 1.55 }],
+  watch: [{ name: 'Apple Watch Series 7', ratio: 0.73 }],
 }

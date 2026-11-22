@@ -1,44 +1,32 @@
 # Features and limits
 
-The feature inventory was based on the public pages and editor labels at shots.so on 22 November 2026. No paid account or private asset library was inspected. Similar-looking domains are not used as evidence about Shots.
+This inventory describes OpenShot 1.1. [The reference review](reference-audit.md) separates direct observations from independent implementations and paid features that could not be compared.
 
-| Shots workflow                                      | OpenShot implementation                                                | Difference or limit                                                                                                   |
-| --------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Image and video import                              | Upload, drop, paste, multiple media layers                             | Source format decoding depends on the browser. PNG/JPG/WebP and MP4/WebM are the safest choices.                      |
-| Device mockups                                      | Thirteen frame categories, device variants, orientation and color      | Original procedural artwork. No copied proprietary 3D models or exact photorealistic asset parity.                    |
-| Templates and layouts                               | Twelve templates and four repeated arrangements                        | Original compositions, with independently replaceable media.                                                          |
-| Glass and inset styling                             | Eight frame treatments with padding and color                          | Approximate visual treatments, not optical material simulation.                                                       |
-| Corners and shadows                                 | Radius, shadow profiles, opacity, color and light direction            | The renderer uses a projected 2D surface with simulated lighting.                                                     |
-| Magic backgrounds                                   | Sampled colors, blurred media and animated mesh                        | No generative image service or remote AI model.                                                                       |
-| Background collections                              | Gradient library, uploaded photos, patterns and texture                | Shots' proprietary wallpaper collections are not bundled.                                                             |
-| Unsplash                                            | Optional server-side search and download tracking                      | Requires the host's Unsplash API key. Offline desktop use supports uploads instead.                                   |
-| Scene effects                                       | Spheres, cubes, rings, arches, shadow overlays                         | Original generated geometry rather than Shots' licensed scene assets.                                                 |
-| Filters and VFX                                     | Monochrome, warm/cool, vintage, VHS, glitch and image adjustments      | These are composited visual filters, not a full video effects suite.                                                  |
-| Animation, zoom and parallax                        | Twenty-four motion presets, keyframes, focus zoom, timeline and easing | Animations export without sound.                                                                                      |
-| Video                                               | Video screens, trim, speed, repeating clip playback                    | No audio editing, clip sequencing, or automatic conversion of unsupported input codecs.                               |
-| Custom watermark                                    | User text or uploaded logo                                             | No forced OpenShot branding.                                                                                          |
-| Social output sizes                                 | Ten size presets and custom dimensions                                 | Editing canvas and exports are bounded to prevent impractical memory allocations.                                     |
-| Image export                                        | PNG, JPG, WebP and clipboard PNG                                       | Clipboard requires a secure origin and browser permission.                                                            |
-| Animated export                                     | H.264 MP4, WebM and GIF                                                | MP4 needs a supported browser encoder. WebM recording runs in real time. GIF is capped at 15 fps and four megapixels. |
-| Sharing                                             | Self-contained compressed project URLs and project files               | No cloud storage, public gallery, revocation, or short-link service. Long links may be rejected by messaging apps.    |
-| Undo, redo, preview, shortcuts and performance mode | Included                                                               | History is bounded to one hundred snapshots per session.                                                              |
+| Area                 | Included                                                                                                               | Limit or difference                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Media                | Import, drop, paste, replace, media picker, independent screens                                                        | Decoding depends on browser input codecs; 150 MB per file                                                |
+| Devices              | Seven licensed GLBs with screen replacement, real geometry, portrait/landscape                                         | Smaller catalog than Shots; live 3D needs WebGL                                                          |
+| Compatibility frames | Front-view renders of all seven models, exact alpha opening masks                                                      | Tilt is a perspective warp; it cannot reveal new side/back geometry. Monitor fallback has a plain finish |
+| Other frames         | Screenshot, browser/application window and Polaroid                                                                    | Independently drawn frames                                                                               |
+| Styling              | Twelve frame treatments; radius, padding, four shadow modes and 2D light position                                      | Glass is a composited treatment, not a physical optical simulation                                       |
+| Layout               | One/two/three screens, eight live previews, templates, positioning and tilt                                            | Independent compositions and interpolation                                                               |
+| Backgrounds          | Green/teal gradients, colors, custom gradients, uploaded images, media colors, blurred media, mesh, patterns and grain | Proprietary wallpaper collections are not bundled                                                        |
+| Photos               | Optional Unsplash search and download tracking                                                                         | Needs the host's server-only API key; offline desktop uses uploads                                       |
+| Scenes               | Editable shapes and shadow overlays                                                                                    | Paid reference scene library is not copied                                                               |
+| VFX                  | Noise, VHS, TV, VHS/tech glitch, light leak, particles, glitter; intensity                                             | Independent implementations; paid output parity unverified                                               |
+| Portrait             | Media blur                                                                                                             | Automatic subject extraction, Stage isolation and exact Lens Blur are not implemented                    |
+| Animation            | Timed layout clips, duration/position editing, scrubbing, looping, easing, motion presets and keyframes                | Beat interpolation is independent; explicit keyframes or presets replace layout beats                    |
+| Video                | Trim, speed, looping and optional audio                                                                                | No multitrack audio editor or clip sequencing; audio decoding depends on input format                    |
+| Watermark            | Your text or uploaded logo                                                                                             | No forced OpenShot branding; licensed device artwork needs artist attribution                            |
+| Images               | PNG/JPG/WebP and PNG clipboard                                                                                         | Clipboard needs a secure origin and browser permission                                                   |
+| Video export         | Frame-by-frame H.264 MP4 and VP9 WebM, optional AAC/Opus audio                                                         | Video encoding needs WebCodecs. AAC has a bundled local fallback. MP4 flattens transparency to black     |
+| GIF                  | Animated GIF, alternating centisecond delays                                                                           | Up to 15 fps and 4 megapixels; binary alpha                                                              |
+| Sharing              | Embedded project files and compressed fragment links                                                                   | No hosted short links, access controls or revocation                                                     |
 
-## Output sizes
+Exports support up to 8192 pixels per side and 32 megapixels total. Projects support up to 100 layers; undo retains up to 100 snapshots. Large images, videos and high-resolution exports can still exceed a device's available memory.
 
-Export dimensions are capped at 8192 pixels per side and 32 megapixels in total. The same total pixel limit applies to imported project canvases. Each media file can be up to 150 MB. A project can contain up to one hundred layers. Large projects can still exceed the memory available on a phone or older computer; the limits are guardrails, not a memory guarantee.
+PNG and WebM alpha exports were checked, including decoding a transparent VP9 file. Player support for transparent video varies. Video encoding uses timeline timestamps rather than screen recording, so rendering slowly does not shorten the output or reduce its requested frame count. A final audio packet may extend the container duration slightly beyond the video timeline.
 
-GIF timing is expressed in centiseconds. Frame delays alternate as needed to keep the overall animation duration close to the timeline. GIF transparency is binary, unlike the alpha channel in PNG or WebP. MP4 flattens transparent pixels to black.
+The browser used for QA disabled WebGL. Model geometry, material names, orientation and screen projection were checked during asset preparation, and all seven front-view compatibility frames were checked in the editor. Live GPU appearance and native platform screen-capture permission flows remain unverified in that browser.
 
-The web editor uses browser storage for one active autosaved project. Saved project files are the portable archive format. An ordinary share link has no server-side copy and cannot be revoked after sharing. Projects containing large videos should be shared as files.
-
-## Desktop packages
-
-Windows x64, Linux x64, macOS Intel and macOS Apple silicon builds use the same web renderer. The shell keeps Node.js out of the page, enables context isolation and sandboxing, limits navigation, and exposes only a screen-capture bridge. Screen capture depends on operating-system permissions and display availability. A container without a display cannot provide a useful screenshot source.
-
-The initial packages are unsigned. Signing and notarization need the maintainer's platform certificates and credentials. GitHub builds cannot create those credentials on the maintainer's behalf.
-
-## Identity
-
-OpenShot's icon is original generated artwork. The sample project interface is original vector artwork. UI symbols come from Lucide, and Inter is bundled locally. [Third-party notices](third-party.md) lists their licenses.
-
-Sources used to identify the reference workflows: [Shots](https://shots.so/), [Shots phone mockups](https://beta.shots.so/mockups/phone), and [Shots editor](https://beta.shots.so/magic). Product descriptions can change; this document describes this repository's implementation.
+Windows x64, Linux x64, macOS Intel and macOS Apple silicon use the same editor in Electron. The shell enables context isolation and sandboxing, keeps Node.js out of the page, limits navigation and exposes only the screen-capture bridge. Packages are unsigned until platform signing credentials are supplied.
