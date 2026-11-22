@@ -1,0 +1,48 @@
+appId: com.overlytiwa.openshot
+productName: OpenShot
+copyright: Copyright © 2026 Ogundiji Tiwalope
+asar: true
+directories:
+  output: release
+  buildResources: public
+files:
+  - dist/**/*
+  - desktop/**/*
+  - public/icon.png
+  - package.json
+  - LICENSE
+  - '!node_modules/**/*'
+icon: public/icon.png
+artifactName: OpenShot-${os}-${arch}.${ext}
+mac:
+  category: public.app-category.graphics-design
+  icon: public/icon.icns
+  target:
+    - dmg
+    - zip
+  artifactName: OpenShot-macOS-${arch}.${ext}
+  hardenedRuntime: true
+win:
+  icon: public/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: OpenShot-Windows-${arch}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+linux:
+  icon: public/icon.png
+  category: Graphics
+  target:
+    - AppImage
+    - deb
+  artifactName: OpenShot-Linux-x64.${ext}
+  maintainer: Ogundiji Tiwalope
+  syncDesktopName: true
+publish:
+  provider: github
+  owner: overlytiwa
+  repo: open-shots

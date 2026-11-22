@@ -1,0 +1,44 @@
+{
+  "name": "open-shots",
+  "version": "1.0.0",
+  "description": "OpenShot is a free, local-first screenshot and video mockup editor for the web and desktop.",
+  "private": true,
+  "type": "module",
+  "main": "desktop/main.cjs",
+  "author": "Ogundiji Tiwalope",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/overlytiwa/open-shots.git"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "desktop": "npm run build && electron .",
+    "desktop:pack": "npm run build && electron-builder --dir",
+    "desktop:dist": "npm run build && electron-builder --publish never",
+    "format": "prettier --write src tests api desktop .github *.json *.yml *.md docs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "gifenc": "^1.0.3",
+    "lucide-react": "^0.468.0",
+    "mp4-muxer": "^5.2.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "electron": "^39.2.0",
+    "electron-builder": "^26.0.12",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2",
+    "vitest": "^3.2.4"
+  },
+  "desktopName": "openshot.desktop"
+}

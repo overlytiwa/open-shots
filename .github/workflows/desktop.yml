@@ -1,0 +1,89 @@
+name: Desktop
+on:
+  push:
+    tags: ['v*']
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: Windows-x64
+            args: --win --x64
+          - os: ubuntu-latest
+            platform: Linux-x64
+            args: --linux --x64
+          - os: macos-15
+            platform: macOS-arm64
+            args: --mac --arm64
+          - os: macos-15-intel
+            platform: macOS-x64
+            args: --mac --x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Package desktop
+        run: npx electron-builder ${{ matrix.args }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenShot-${{ matrix.platform }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.deb
+          if-no-files-found: error
+          retention-days: 14
+  release:
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: OpenShot-*
+          merge-multiple: true
+          path: installers
+      - name: Publish installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          if [[ "$REF" == refs/tags/* ]]; then
+            TAG="$REF_NAME"
+          else
+            TAG="v$(node -p "require('./package.json').version")"
+            if gh release view "$TAG" > /dev/null 2>&1; then
+              echo "Version $TAG is already published; keeping its installers unchanged."
+              exit 0
+            fi
+          fi
+          gh release view "$TAG" || gh release create "$TAG" --target "$COMMIT" --title "OpenShot ${TAG#v}" --generate-notes
+          gh release upload "$TAG" installers/* --clobber

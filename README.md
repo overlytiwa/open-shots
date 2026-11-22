@@ -7,6 +7,8 @@ OpenShot takes an image or screen recording and puts it in a layout you can use 
 
 There is no account, subscription, export allowance, paid template tier, or OpenShot watermark. Editing and rendering happen on your device. Your screenshots do not need to pass through someone else's server to get a background and rounded corners.
 
+![OpenShot editor](docs/editor.jpg)
+
 ## What it does
 
 | Area           | Included                                                                                                                                                                          |
