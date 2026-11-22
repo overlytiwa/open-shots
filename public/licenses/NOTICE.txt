@@ -18,7 +18,9 @@ Full LGPL text and upstream FFmpeg license notice are included in ffmpeg/.
 Three.js r180, Copyright Three.js authors, MIT
 https://github.com/mrdoob/three.js/tree/r180
 Three.js license included as three-MIT.txt
-Its bundled Basis Universal transcoder and Meshoptimizer decoder retain their upstream license headers.
+Basis Universal transcoder: Copyright Binomial LLC, Apache License 2.0.
+The full license is included as basis-Apache-2.0.txt.
+Meshoptimizer decoder: Copyright Arseny Kapoulkine, MIT license; its source license header is retained.
 
 Additional packages and licenses:
 https://github.com/overlytiwa/open-shots/blob/main/docs/third-party.md
